@@ -456,23 +456,6 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		_configAnEvent(thisInstance, 'onIntervalEnd', options);
 	}
 
-    function _decideLowerBoundaryUsedEdge(thisInstance, desiredEdgeIsBottom) {
-        var publicState = thisInstance.state,
-            pName = 'shouldUseBottomEdgeOfLowerBoundaryRefElement',
-            elements = thisInstance.elements,
-            rootElement = elements.root,
-            refElement = elements.lowerBoundaryRef
-            ;
-
-        if (typeof desiredEdgeIsBottom !== 'boolean') return publicState[pName];
-
-        if (domAIsChildOfB(rootElement, refElement)) {
-            publicState[pName] = true;
-        } else {
-            publicState[pName] = desiredEdgeIsBottom;
-        }
-    }
-
 	function _configAnEvent(thisInstance, eventName, options) {
 		var eventsHost = _privateDataOf(thisInstance).events,
 			input = options[eventName]
@@ -797,6 +780,10 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 	}
 
     function renewLowerBoundaryRefElement(newElement, isForcedToRenew) {
+		var newState = {};
+
+		if (isForcedToRenew) newState.isForcedToUpdate = true;
+
         var elements = this.elements,
             rootElement = elements.root,
             pName = 'lowerBoundaryRef',
