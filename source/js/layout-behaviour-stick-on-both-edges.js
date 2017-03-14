@@ -236,8 +236,8 @@
 		// a very traditional way to safely update related info
 		thisInstance.startIntervalOfRenewingState = startIntervalOfRenewingState;
 		thisInstance.clearIntervalOfRenewingState = clearIntervalOfRenewingState;
-		thisInstance.startIntervalOfUpdateLayout = startIntervalOfUpdateLayout;
-		thisInstance.clearIntervalOfUpdateLayout = clearIntervalOfUpdateLayout;
+		thisInstance.startIntervalOfLayoutUpdate = startIntervalOfLayoutUpdate;
+		thisInstance.clearIntervalOfLayoutUpdate = clearIntervalOfLayoutUpdate;
 
 		thisInstance.requestLayoutUpdate = requestLayoutUpdate;
 		thisInstance.updateLayout = updateLayout;
@@ -296,8 +296,8 @@
 		boundFunctions.doIntervalOfRenewingState =
 			_doIntervalOfRenewingState.bind(null, thisInstance);
 
-		boundFunctions.doIntervalOfUpdateLayout =
-			_doIntervalOfUpdateLayout.bind(null, thisInstance);
+		boundFunctions.doIntervalOfLayoutUpdate =
+			_doIntervalOfLayoutUpdate.bind(null, thisInstance);
 
 
 
@@ -321,7 +321,7 @@
 	}
 
 	function isEnabled() {
-		return _privateDataOf(this).isEnabled;
+		return _privateDataOf(this).state.isEnabled;
 	}
 
 	function currentLayout() {
@@ -497,7 +497,7 @@
 		shouldEnable = !!shouldEnable;
 
 
-		var shouldCancel = _onEnablingOrDisablingHangingBehviour(this,
+		var shouldCancel = _onEnablingOrDisabling(this,
 			shouldEnable,
 			shouldDestroyAfterDisabled
 		);
@@ -536,7 +536,7 @@
 		enableOrDisable.call(this, false, reasonForDisabling, shouldDestroyAfterDisabled);
 	}
 
-	function _onEnablingOrDisablingHangingBehviour(thisInstance, willEnable, shouldDestroyAfterDisabled) {
+	function _onEnablingOrDisabling(thisInstance, willEnable, shouldDestroyAfterDisabled) {
 		// return value: true means shouldCancel <boolean>
 		// Note that event handlers also return true means shouldCancel <boolean>
 
@@ -560,13 +560,11 @@
 		return _dispatchAnEvent(thisInstance, 'onDestroying');
 	}
 
-	function _onEnabledOrDisabledHangingBehviour(thisInstance, isNowEnabled) {
-		var publicState = thisInstance.state,
-			privateData = _privateDataOf(thisInstance)
-		;
+	function _onEnabledOrDisabled(thisInstance, isNowEnabled) {
+		var publicState = thisInstance.state;
 
-		// console.log('\n===== _onEnabledOrDisabledHangingBehviour', isNowEnabled, '\n=====');
-		privateData.isEnabled = isNowEnabled;
+		// console.log('\n===== _onEnabledOrDisabled', isNowEnabled, '\n=====');
+		_privateDataOf(thisInstance).state.isEnabled = isNowEnabled;
 
 		if (isNowEnabled) {
 			delete publicState.shouldDestroyAfterDisabled;
@@ -578,7 +576,7 @@
 			_dispatchAnEvent(thisInstance, 'onDisabled');
 
 			thisInstance.clearIntervalOfRenewingState();
-			thisInstance.clearIntervalOfUpdateLayout();
+			thisInstance.clearIntervalOfLayoutUpdate();
 
 			if (publicState.shouldDestroyAfterDisabled) {
 				_destroyOneInstanceAfterLayoutRestoredToFree(thisInstance);
@@ -643,13 +641,13 @@
 
 
 
-	function startIntervalOfUpdateLayout() {
-		_startOrClearIntervalOfUpdateLayout(this, true);
+	function startIntervalOfLayoutUpdate() {
+		_startOrClearIntervalOfLayoutUpdate(this, true);
 	}
-	function clearIntervalOfUpdateLayout() {
-		_startOrClearIntervalOfUpdateLayout(this, false);
+	function clearIntervalOfLayoutUpdate() {
+		_startOrClearIntervalOfLayoutUpdate(this, false);
 	}
-	function _startOrClearIntervalOfUpdateLayout(thisInstance, shouldStart) {
+	function _startOrClearIntervalOfLayoutUpdate(thisInstance, shouldStart) {
 		var privateData = _privateDataOf(thisInstance),
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for updating layout.',
@@ -665,7 +663,7 @@
 				// , '\n' + logString3, rootEl
 			);
 			privateData[pNameForIndex] = setInterval(
-				privateData.boundFunctions.doIntervalOfUpdateLayout,
+				privateData.boundFunctions.doIntervalOfLayoutUpdate,
 				thisInstance.options.intervalTimeInMSForUpdatingLayout
 			);
 		} else if (!shouldStart && hasActiveInterval) {
@@ -676,7 +674,7 @@
 			privateData[pNameForIndex] = NaN;			
 		}
 	}
-	function _doIntervalOfUpdateLayout(thisInstance) {
+	function _doIntervalOfLayoutUpdate(thisInstance) {
 		updateLayout.call(thisInstance);
 	}
 
@@ -1104,7 +1102,7 @@
 
 		if (typeof newState.shouldEnable === 'boolean') {
 			// reason should be available for onEnabled/onDisabled events
-			_onEnabledOrDisabledHangingBehviour(thisInstance, newState.shouldEnable);
+			_onEnabledOrDisabled(thisInstance, newState.shouldEnable);
 
 			// now delete the old reason
 			delete publicState.reason;
