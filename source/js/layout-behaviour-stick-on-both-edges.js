@@ -457,13 +457,12 @@
 		}
 	}
 
-	function _dispatchAnEvent(thisInstance, eventName, shouldWarnIfNotHandled, warningMsg) {
+	function _dispatchAnEvent(thisInstance, eventName, shouldWarnIfNotHandled) {
 		var eventsHost = _privateDataOf(thisInstance).events;
 
 		if (typeof eventsHost[eventName] !== 'function') {
 			if (shouldWarnIfNotHandled) {
-				warningMsg = warningMsg || 'The "'+eventName+'" is NOT handled.';
-				console.warn(warningMsg);
+				console.warn('The "'+eventName+'" is NOT handled.');
 			}
 
 			return;
