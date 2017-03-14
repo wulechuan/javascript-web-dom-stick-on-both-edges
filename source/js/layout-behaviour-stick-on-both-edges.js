@@ -117,7 +117,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 				layoutFreeTemporary: 'js-stick-on-both-edges-layout-temporarily-free',
 				layoutFree: 'js-stick-on-both-edges-layout-free',
 				layoutPinToWindowTop: 'js-stick-on-both-edges-layout-hang-to-window-top',
-				layoutPinToParentBottom: 'js-stick-on-both-edges-layout-pin-to-lower-boundry',
+				layoutPinToParentBottom: 'js-stick-on-both-edges-layout-pin-to-lower-boundary',
 			},
 
 			intervalTimeForRenewingState: 500,
@@ -139,10 +139,10 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 			contentTopToPageTopInFreeLayout: NaN,
 			contentTopToRootTopInFreeLayout: 0,
 			contentTopToWindowTopInHangingLayouts: 0,
-			contentBottomToLowerBoundryInHangingLayouts: 15,
+			contentBottomToLowerBoundaryInHangingLayouts: 15,
 
-			shouldUseBottomEdgeOfLowerBoundryRefElement: true,
-			hangingLowerBoundryToPageTop: NaN
+			shouldUseBottomEdgeOfLowerBoundaryRefElement: true,
+			hangingLowerBoundaryToPageTop: NaN
 
 
 
@@ -176,7 +176,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		thisInstance.elements = {
 			root: constructionOptions.rootElement, // as the wrapper and the placeholder for the chiefContent element
 			chiefContent: constructionOptions.chiefContentElement,
-			lowerBoundryRef: null
+			lowerBoundaryRef: null
 		};
 
 
@@ -199,7 +199,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 				// helpers
 				somethingChanged: false,
-				hangingLowerBoundryToWindowTop: NaN, // Saving this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
+				hangingLowerBoundaryToWindowTop: NaN, // Saving this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
 				shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
 
 
@@ -265,8 +265,8 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		// thisInstance.renewContentHeight = renewContentHeight;
 		// thisInstance.renewContentTopToRootTopInFreeLayout = renewContentTopToRootTopInFreeLayout;
 		thisInstance.renewContentTopToWindowTopInHangingLayouts = renewContentTopToWindowTopInHangingLayouts;
-		thisInstance.renewHangingLowerBoundryValue = renewHangingLowerBoundryValue;
-		thisInstance.renewUsedEdgeOfLowerBoundryRefElement = renewUsedEdgeOfLowerBoundryRefElement;
+		thisInstance.renewHangingLowerBoundaryValue = renewHangingLowerBoundaryValue;
+		thisInstance.renewUsedEdgeOfLowerBoundaryRefElement = renewUsedEdgeOfLowerBoundaryRefElement;
 
 
 		// a very traditional way to safely update related info
@@ -365,7 +365,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		if (layoutStates.isFreeLayout) return 'free layout';
 		if (layoutStates.isPinnedToWindowTop) return 'pinned to top';
-		if (layoutStates.isPinnerToParentBottom) return 'following lower boundry';
+		if (layoutStates.isPinnerToParentBottom) return 'following lower boundary';
 
 		throw RangeError(logNameOfClass, 'Fatal: None of the three states are active.');
 	}
@@ -398,7 +398,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		case 'following':
 		case 'bottom':
-		case 'following-lower-boundry':
+		case 'following-lower-boundary':
 		case 'pinned-to-bottom':
 			return layoutStates.isPinnerToParentBottom;
 		}
@@ -456,12 +456,12 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		_configAnEvent(thisInstance, 'onIntervalEnd', options);
 	}
 
-    function _decideLowerBoundryUsedEdge(thisInstance, desiredEdgeIsBottom) {
+    function _decideLowerBoundaryUsedEdge(thisInstance, desiredEdgeIsBottom) {
         var publicState = thisInstance.state,
-            pName = 'shouldUseBottomEdgeOfLowerBoundryRefElement',
+            pName = 'shouldUseBottomEdgeOfLowerBoundaryRefElement',
             elements = thisInstance.elements,
             rootElement = elements.root,
-            refElement = elements.lowerBoundryRef
+            refElement = elements.lowerBoundaryRef
             ;
 
         if (typeof desiredEdgeIsBottom !== 'boolean') return publicState[pName];
@@ -658,7 +658,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		if (!shouldCancel) {
 			renewContentHeight.call(thisInstance, true);
-			renewHangingLowerBoundryValue.call(thisInstance, true);
+			renewHangingLowerBoundaryValue.call(thisInstance, true);
 			renewContentTopToRootTopInFreeLayout.call(thisInstance, true);
 			renewContentTopToPageTopInFreeLayout.call(thisInstance, true);
 		}
@@ -719,7 +719,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 	// renew all state but NOT the global switch, aka the this.state.shouldEnable
 	function renewState(options, isForcedToRenew) {
-		var didntRequestAnUpdateForLowerBoundryUsedEdge = true;
+		var didntRequestAnUpdateForLowerBoundaryUsedEdge = true;
 
 
 
@@ -730,18 +730,18 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 				isForcedToRenew
 			);
 
-			renewContentBottomDistanceToLowerBoundry.call(this,
-				options.contentBottomToLowerBoundryInHangingLayouts,
+			renewContentBottomDistanceToLowerBoundary.call(this,
+				options.contentBottomToLowerBoundaryInHangingLayouts,
 				isForcedToRenew
 			);
 
-			didntRequestAnUpdateForLowerBoundryUsedEdge = renewLowerBoundryRefElement.call(this,
-				options.lowerBoundryRefElement,
+			didntRequestAnUpdateForLowerBoundaryUsedEdge = renewLowerBoundaryRefElement.call(this,
+				options.lowerBoundaryRefElement,
 				isForcedToRenew
 			);
 
-			didntRequestAnUpdateForLowerBoundryUsedEdge = renewUsedEdgeOfLowerBoundryRefElement.call(this,
-				options.shouldUseBottomEdgeOfLowerBoundryRefElement,
+			didntRequestAnUpdateForLowerBoundaryUsedEdge = renewUsedEdgeOfLowerBoundaryRefElement.call(this,
+				options.shouldUseBottomEdgeOfLowerBoundaryRefElement,
 				isForcedToRenew
 			);
 		}
@@ -750,10 +750,10 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		// actions that need no arguments
 
-		if (didntRequestAnUpdateForLowerBoundryUsedEdge) {
-			renewHangingLowerBoundryValue.call(this, isForcedToRenew);
+		if (didntRequestAnUpdateForLowerBoundaryUsedEdge) {
+			renewHangingLowerBoundaryValue.call(this, isForcedToRenew);
 		} else {
-			// renewUsedEdgeOfLowerBoundryRefElement will implicitly call renewHangingLowerBoundryValue
+			// renewUsedEdgeOfLowerBoundaryRefElement will implicitly call renewHangingLowerBoundaryValue
 		}
 
 		renewContentHeight.call(this, isForcedToRenew);
@@ -796,16 +796,16 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		requestLayoutUpdate.call(this, newState);
 	}
 
-    function renewLowerBoundryRefElement(newElement, isForcedToRenew) {
+    function renewLowerBoundaryRefElement(newElement, isForcedToRenew) {
         var elements = this.elements,
             rootElement = elements.root,
-            pName = 'lowerBoundryRef',
+            pName = 'lowerBoundaryRef',
             newElementIsValid = true,
-            logString1 = 'The lower boundry ref element',
+            logString1 = 'The lower boundary ref element',
             logString2 = 'This doesn\'t make any sense. Ref element NOT renewed.'
             ;
 
-        if (newElement !== null) { // null value is acceptable for removing lower boundry ref element
+        if (newElement !== null) { // null value is acceptable for removing lower boundary ref element
             if (!(newElement instanceof Node)) {
                 newElementIsValid = false;
             } else if (domAIsChildOfB(newElement, rootElement)) {
@@ -821,24 +821,24 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
             elements[pName] = newElement;
 
             if (domAIsChildOfB(rootElement, newElement)) {
-                this.state.shouldUseBottomEdgeOfLowerBoundryRefElement = true;
-                return false; // means the "shouldUseBottomEdgeOfLowerBoundryRefElement" has been changed here
+                this.state.shouldUseBottomEdgeOfLowerBoundaryRefElement = true;
+                return false; // means the "shouldUseBottomEdgeOfLowerBoundaryRefElement" has been changed here
             }
 
-            return true; // means the "shouldUseBottomEdgeOfLowerBoundryRefElement" has NOT been changed here
+            return true; // means the "shouldUseBottomEdgeOfLowerBoundaryRefElement" has NOT been changed here
         }
 
         return true; // nothing of the public state changed inside this function
     }
 
-	function renewContentBottomDistanceToLowerBoundry(newExtraSpace, isForcedToRenew) {
+	function renewContentBottomDistanceToLowerBoundary(newExtraSpace, isForcedToRenew) {
 		var newState = {};
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
 		newExtraSpace = parseFloat(newExtraSpace);
 		if (!isNaN(newExtraSpace)) {
-			newState.contentBottomToLowerBoundryInHangingLayouts = newExtraSpace;
+			newState.contentBottomToLowerBoundaryInHangingLayouts = newExtraSpace;
 		}
 
 		requestLayoutUpdate.call(this, newState);
@@ -905,34 +905,34 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		requestLayoutUpdate.call(thisInstance, newState);
 	}
 
-	function renewUsedEdgeOfLowerBoundryRefElement(shouldUseBottomEdgeOfLowerBoundryRefElement, isForcedToRenew) {
+	function renewUsedEdgeOfLowerBoundaryRefElement(shouldUseBottomEdgeOfLowerBoundaryRefElement, isForcedToRenew) {
 		var thisInstance = this,
 			elements = thisInstance.elements
 		;
 
-		if (domAIsChildOfB(elements.root, elements.lowerBoundryRef) ||
-			shouldUseBottomEdgeOfLowerBoundryRefElement === null ||
-			shouldUseBottomEdgeOfLowerBoundryRefElement === undefined
+		if (domAIsChildOfB(elements.root, elements.lowerBoundaryRef) ||
+			shouldUseBottomEdgeOfLowerBoundaryRefElement === null ||
+			shouldUseBottomEdgeOfLowerBoundaryRefElement === undefined
 		) {
 			// Should always use 'bottom'
 			return true;
 		}
 
 		// update public state directly here,
-		// to ensure renewHangingLowerBoundryValue execute correctly
+		// to ensure renewHangingLowerBoundaryValue execute correctly
 		// but need more thinking
-		thisInstance.state.shouldUseBottomEdgeOfLowerBoundryRefElement = !!shouldUseBottomEdgeOfLowerBoundryRefElement;
+		thisInstance.state.shouldUseBottomEdgeOfLowerBoundaryRefElement = !!shouldUseBottomEdgeOfLowerBoundaryRefElement;
 
 		var newState = {};
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		renewHangingLowerBoundryValue.call(this, isForcedToRenew);
+		renewHangingLowerBoundaryValue.call(this, isForcedToRenew);
 
 		return false;
 	}
 
-	function renewHangingLowerBoundryValue(isForcedToRenew) {
+	function renewHangingLowerBoundaryValue(isForcedToRenew) {
 		var newState = _evaluateHangingBoundries(this);
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
@@ -945,7 +945,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		// but also returns a newState object for other function to utilize
 
 		var publicState = thisInstance.state,
-			pName = 'hangingLowerBoundryToPageTop',
+			pName = 'hangingLowerBoundaryToPageTop',
             refElement = thisInstance.elements[pName],
             refElementClientRect,
 			refNewYToWindowTop = NaN,
@@ -955,9 +955,9 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
         if (refElement instanceof Node) {
             refElementClientRect = refElement.getBoundingClientRect();
             if (refElementClientRect.width === 0 && refElementClientRect.height === 0) {
-                console.warn('Reference element for deciding hanging lower boundry is invisible at this moment.');
+                console.warn('Reference element for deciding hanging lower boundary is invisible at this moment.');
             } else {
-                refNewYToWindowTop = refElementClientRect[publicState.shouldUseBottomEdgeOfLowerBoundryRefElement ? 'bottom' : 'top'];
+                refNewYToWindowTop = refElementClientRect[publicState.shouldUseBottomEdgeOfLowerBoundaryRefElement ? 'bottom' : 'top'];
                 refNewYToPageTop = refNewYToWindowTop + window.scrollY;
             }
         } else {
@@ -966,7 +966,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 
 		// values below might be NaN, as long as the refElement is not available any more or is hidden
-		_privateDataOf(thisInstance).state.hangingLowerBoundryToWindowTop = refNewYToWindowTop;
+		_privateDataOf(thisInstance).state.hangingLowerBoundaryToWindowTop = refNewYToWindowTop;
 		publicState[pName] = refNewYToPageTop;
 
 
@@ -1194,10 +1194,10 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 
 		var hangingTopOffset = publicState.contentTopToWindowTopInHangingLayouts,
-            topBoundryToPageTop = window.scrollY + hangingTopOffset,
-            boundriesDistance = publicState.hangingLowerBoundryToPageTop - publicState.contentTopToPageTopInFreeLayout,
-            requiredRoomInY = publicState.blockHeight + publicState.contentBottomToLowerBoundryInHangingLayouts,
-            availableRoomInY = privateState.hangingLowerBoundryToWindowTop - hangingTopOffset,
+            topBoundaryToPageTop = window.scrollY + hangingTopOffset,
+            boundriesDistance = publicState.hangingLowerBoundaryToPageTop - publicState.contentTopToPageTopInFreeLayout,
+            requiredRoomInY = publicState.blockHeight + publicState.contentBottomToLowerBoundaryInHangingLayouts,
+            availableRoomInY = privateState.hangingLowerBoundaryToWindowTop - hangingTopOffset,
 
 
 		    // Might need compensation to some margins but not implemented yet
@@ -1207,7 +1207,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		var thereIsNoEnoughRoomForThisBlockToHang =
 			window.innerHeight < requiredRoomInY ||
 			(
-				// NaN means lower boundry doesn't available at all,
+				// NaN means lower boundary doesn't available at all,
 				// so there is always enough room
 				!isNaN(boundriesDistance) &&
 
@@ -1221,12 +1221,12 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		// 	'\n\t someting changed?', privateState.somethingChanged,
 
 		// 	'\n to pin to top:',
-		// 	'\n\t window scroll y:', topBoundryToPageTop,
+		// 	'\n\t window scroll y:', topBoundaryToPageTop,
 		// 	'\n\t free layout top:', publicState.contentTopToPageTopInFreeLayout,
-		// 	'\n\t window scroll y <= free layout top?', topBoundryToPageTop <= publicState.contentTopToPageTopInFreeLayout,
+		// 	'\n\t window scroll y <= free layout top?', topBoundaryToPageTop <= publicState.contentTopToPageTopInFreeLayout,
 
 		// 	'\n to pin to bottom:',
-		// 	'\n\t lower boundry y:', privateState.hangingLowerBoundryToWindowTop,
+		// 	'\n\t lower boundary y:', privateState.hangingLowerBoundaryToWindowTop,
 		// 	'\n\t available y:', availableRoomInY,
 		// 	'\n\t required room y:', requiredRoomInY,
 		// 	'\n\t available y <= required room y?', availableRoomInY < requiredRoomInY
@@ -1234,11 +1234,11 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		if (!publicState.shouldEnable ||
 			thereIsNoEnoughRoomForThisBlockToHang ||
-			topBoundryToPageTop <= publicState.contentTopToPageTopInFreeLayout
+			topBoundaryToPageTop <= publicState.contentTopToPageTopInFreeLayout
 		) {
 			____switchLayoutToFree(thisInstance, isForcedToUpdate);
 		} else if (availableRoomInY <= requiredRoomInY) {
-			____switchLayoutToContentPinningAboveLowerBoundry(
+			____switchLayoutToContentPinningAboveLowerBoundary(
 				thisInstance,
 				isForcedToUpdate,
 				blockRootHeightWhenPinned,
@@ -1328,17 +1328,17 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		});
 	}
 
-	function ____switchLayoutToContentPinningAboveLowerBoundry(thisInstance, isForcedToUpdate, blockRootHeightWhenPinned, contentElNewTop) {
+	function ____switchLayoutToContentPinningAboveLowerBoundary(thisInstance, isForcedToUpdate, blockRootHeightWhenPinned, contentElNewTop) {
 		// var switchingWasSkipped =
 		return _____commonActionsWhenSwitchingLayout(thisInstance, {
-			methodForSwitchingToCurrentLayout: ____switchLayoutToContentPinningAboveLowerBoundry, // of cause, should be itself
+			methodForSwitchingToCurrentLayout: ____switchLayoutToContentPinningAboveLowerBoundary, // of cause, should be itself
 			isForcedToUpdate: isForcedToUpdate,
 			pNameOfLayoutMark: 'isPinnerToParentBottom',
 			pNameOfCssClass: 'layoutPinToParentBottom',
 			rootElHeight: blockRootHeightWhenPinned + 'px',
 			contentElTop: contentElNewTop + 'px'
 
-			// , logStringWhenActuallySwitching: '*** Pinning content to follow lower boundry...'
+			// , logStringWhenActuallySwitching: '*** Pinning content to follow lower boundary...'
 			// , shouldDebug: true
 		});
 	}
