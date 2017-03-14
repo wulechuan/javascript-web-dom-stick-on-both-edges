@@ -107,14 +107,14 @@
 
 
 
-				// We might lose the margins caused by inner content whenver the content is pinned,
-				// no matter it's pinned above or below.
-				// So these values are something we need to remember and make compensation for.
-				// But situation could be complicated.
-				// The root block might has its own margins, as well as the block below has ITS own margins.
-				// If a margin value of the inner content is greater than involved margin values from the root and the block below
-				// then a compensation is needed, otherwise not.
-				// I actually deprecated this value for simplify things.
+			// We might lose the margins caused by inner content whenver the content is pinned,
+			// no matter it's pinned above or below.
+			// So these values are something we need to remember and make compensation for.
+			// But situation could be complicated.
+			// The root block might has its own margins, as well as the block below has ITS own margins.
+			// If a margin value of the inner content is greater than involved margin values from the root and the block below
+			// then a compensation is needed, otherwise not.
+			// I actually deprecated this value for simplify things.
 			// innerContentKnownMarginTop: 0, // also used for calculating required room in y
 			// innerContentKnownMarginBottom: 0 // also used for calculating required room in y
 		};
@@ -278,13 +278,17 @@
 
 
 		// Third, also update layout whenever user is scrolling or resizing window
-		var boundFunctions = privatePropertiesHost[thisInstance.__pToken].boundFunctions;
+		var boundFunctions = _privateStateOf(thisInstance).boundFunctions;
 		window.addEventListener('scroll', boundFunctions.listenToWindowOnScrollEvent);
 		// window.addEventListener('resize', boundFunctions.listenToWindowOnResizeEvent);
 	}
 
+	function _privateStateOf(thisInstance) {
+		return privatePropertiesHost[thisInstance.__pToken];
+	}
+
 	function _createBoundFunctions(thisInstance) {
-		var boundFunctions = privatePropertiesHost[thisInstance.__pToken].boundFunctions;
+		var boundFunctions = _privateStateOf(thisInstance).boundFunctions;
 
 		boundFunctions.doIntervalOfRenewingState =
 			_doIntervalOfRenewingState.bind(null, thisInstance);
@@ -314,11 +318,11 @@
 	}
 
 	function isEnabled() {
-		return privatePropertiesHost[this.__pToken].isEnabled;
+		return _privateStateOf(this).isEnabled;
 	}
 
 	function currentLayout() {
-		var privateState = privatePropertiesHost[this.__pToken];
+		var privateState = _privateStateOf(this);
 
 		if (privateState.isInFreeLayout) return 'free layout';
 		if (privateState.isPinnedToWindowTop) return 'pinned to top';
@@ -328,7 +332,7 @@
 	}
 
 	function currentLayoutIs(layoutNameToCheck) {
-		var privateState = privatePropertiesHost[this.__pToken];
+		var privateState = _privateStateOf(this);
 
 		if (!layoutNameToCheck || typeof layoutNameToCheck !== 'string') {
 			return false;
@@ -439,7 +443,7 @@
 	}
 
 	function _configAnEvent(thisInstance, eventName, options) {
-		var eventsHost = privatePropertiesHost[thisInstance.__pToken].events,
+		var eventsHost = _privateStateOf(thisInstance).events,
 			input = options[eventName]
 		;
 
@@ -449,7 +453,7 @@
 	}
 
 	function _dispatchAnEvent(thisInstance, eventName, shouldWarnIfNotHandled, warningMsg) {
-		var eventsHost = privatePropertiesHost[thisInstance.__pToken].events;
+		var eventsHost = _privateStateOf(thisInstance).events;
 
 		if (typeof eventsHost[eventName] !== 'function') {
 			if (shouldWarnIfNotHandled) {
@@ -469,7 +473,7 @@
 
 	function _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance) {
 		var elements = thisInstance.elements,
-			boundFunctions = privatePropertiesHost[thisInstance.__pToken].boundFunctions
+			boundFunctions = _privateStateOf(thisInstance).boundFunctions
 		;
 
 		window.removeEventListener('scroll', boundFunctions.listenToWindowOnScrollEvent);
@@ -556,7 +560,7 @@
 
 	function _onEnabledOrDisabledHangingBehviour(thisInstance, isNowEnabled) {
 		var publicState = thisInstance.state,
-			privateData = privatePropertiesHost[thisInstance.__pToken]
+			privateData = _privateStateOf(thisInstance)
 		;
 
 		// console.log('\n===== _onEnabledOrDisabledHangingBehviour', isNowEnabled, '\n=====');
@@ -593,7 +597,7 @@
 	}
 
 	function _startOrClearIntervalOfRenewingState(thisInstance, shouldStart) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken],
+		var privateData = _privateStateOf(thisInstance),
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for renewing related info.',
 			// logString3 =  '\n\t module rootEl:',
@@ -644,7 +648,7 @@
 		_startOrClearIntervalOfUpdateLayout(this, false);
 	}
 	function _startOrClearIntervalOfUpdateLayout(thisInstance, shouldStart) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken],
+		var privateData = _privateStateOf(thisInstance),
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for updating layout.',
 			// logString3 = indentAlignsToLogNameOfClass.slice(0, -15) + ' module rootEl:',
@@ -774,7 +778,7 @@
 
 	function renewContentTopToPageTopInFreeLayout(isForcedToRenewWithoutWaitingForLayoutToSwitch) {
 		var thisInstance = this,
-			privateData = privatePropertiesHost[thisInstance.__pToken],
+			privateData = _privateStateOf(thisInstance),
 			shouldDoRenew = true,
 			functionForSwitchingToCorrectLayout,
 			forcedImmediateSwitchingWasSkipped = true,
@@ -887,7 +891,7 @@
 
 
 		// values below might be NaN, as long as the refElement is not available any more or is hidden
-		privatePropertiesHost[thisInstance.__pToken].hangingLowerBoundryToWindowTop = refNewYToWindowTop;
+		_privateStateOf(thisInstance).hangingLowerBoundryToWindowTop = refNewYToWindowTop;
 		publicState[pName] = refNewYToPageTop;
 
 
@@ -900,7 +904,7 @@
 
 	function requestLayoutUpdate(newStateOrFunctionToGenerateNewStateOrABoolean) {
 		var thisInstance = this,
-			statesQueue = privatePropertiesHost[thisInstance.__pToken].queuedStatesForUpdating
+			statesQueue = _privateStateOf(thisInstance).queuedStatesForUpdating
 		;
 
 
@@ -932,14 +936,14 @@
 	}
 
 	// function _processAllqueuedStatesForUpdating(thisInstance) {
-	// 	while (privatePropertiesHost[this.__pToken].queuedStatesForUpdating.length > 0) {
+	// 	while (_privateStateOf(this).queuedStatesForUpdating.length > 0) {
 	// 		__processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance);
 	// 	}
 	// 	___updateAllDerivedStatesAccordingToNewState();
 	// }
 
 	function __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken];
+		var privateData = _privateStateOf(thisInstance);
 
 		var newState = privateData.queuedStatesForUpdating.shift();
 
@@ -972,7 +976,7 @@
 		Object.keys(thisInstance.state).forEach(function (pName) {
 			var thisPropertyWillChange = _____detectChangeForAProperty(pName, state1, state2);
 			if (thisPropertyWillChange) {
-				privatePropertiesHost[thisInstance.__pToken].somethingChanged = true;
+				_privateStateOf(thisInstance).somethingChanged = true;
 			} else {
 				delete state2[pName];
 			}
@@ -1010,7 +1014,7 @@
 
 
 
-		if (!privatePropertiesHost[thisInstance.__pToken].somethingChanged) return;
+		if (!_privateStateOf(thisInstance).somethingChanged) return;
 
 
 
@@ -1054,7 +1058,7 @@
 	// You can also name this function as something like "flushQueuedTasks".
 	function updateLayout() {
 		var thisInstance = this,
-			privateData = privatePropertiesHost[thisInstance.__pToken],
+			privateData = _privateStateOf(thisInstance),
 			publicState = thisInstance.state,
 			statesQueue = privateData.queuedStatesForUpdating
 			;
@@ -1107,7 +1111,7 @@
 
 	function ___doUpdateLayout(thisInstance, isForcedToUpdate) {
 		var elements = thisInstance.elements,
-			privateData = privatePropertiesHost[thisInstance.__pToken],
+			privateData = _privateStateOf(thisInstance),
 			publicState = thisInstance.state
 			;
 
@@ -1139,7 +1143,7 @@
 
 
 		// console.debug(
-		// 	'\n\t someting changed?', privatePropertiesHost[thisInstance.__pToken].somethingChanged,
+		// 	'\n\t someting changed?', _privateStateOf(thisInstance).somethingChanged,
 
 		// 	'\n to pin to top:',
 		// 	'\n\t window scroll y:', topBoundryToPageTop,
@@ -1180,7 +1184,7 @@
 	}
 
 	function ____switchLayoutToFree(thisInstance, isForcedToUpdate, isForcedByAForcedRenew) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken],
+		var privateData = _privateStateOf(thisInstance),
 			layoutBeforeSwitchingWasExactlyFreeLayout = privateData.isInFreeLayout
 		;
 
@@ -1269,7 +1273,7 @@
 		// Returns false: switching proceeded.
 
 		// options = options || {};
-		var privateData = privatePropertiesHost[thisInstance.__pToken],
+		var privateData = _privateStateOf(thisInstance),
 			publicState = thisInstance.state,
 			elements = thisInstance.elements,
 			pNameOfLayoutMark = options.pNameOfLayoutMark,
@@ -1299,7 +1303,7 @@
 	}
 
 	function ______soloLayoutStateTo(thisInstance, propertyKeyOfLayoutState) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken];
+		var privateData = _privateStateOf(thisInstance);
 		[
 			'isInFreeLayout',
 			'isPinnedToWindowTop',
