@@ -81,6 +81,7 @@
 				layoutPinToWindowTop: 'js-stick-on-both-edges-layout-hang-to-window-top',
 				layoutPinToParentBottom: 'js-stick-on-both-edges-layout-pin-to-lower-boundry',
 			},
+
 			intervalTimeInMSForRenewingState: 500,
 			intervalTimeInMSForUpdatingLayout: 40,
 			throttleTimeInMSForScrollAndResizeListeners: 16
@@ -162,6 +163,7 @@
 				},
 
 				somethingChanged: false,
+				hangingLowerBoundryToWindowTop: NaN, // save this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
 				shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
 			},
 
@@ -173,10 +175,6 @@
 
 			// the queued tasks (states actually), btw, at present no more than one task is allowed
 			updatingStatesQueue: [],
-
-
-			// task helpers
-			hangingLowerBoundryToWindowTop: NaN, // save this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
 
 
 			// misc
@@ -895,7 +893,7 @@
 
 
 		// values below might be NaN, as long as the refElement is not available any more or is hidden
-		_privateDataOf(thisInstance).hangingLowerBoundryToWindowTop = refNewYToWindowTop;
+		_privateDataOf(thisInstance).state.hangingLowerBoundryToWindowTop = refNewYToWindowTop;
 		publicState[pName] = refNewYToPageTop;
 
 
@@ -1091,10 +1089,10 @@
 
 		var isForcedToUpdate = newState.isForcedToUpdate;
 		delete newState.isForcedToUpdate;
-		// console.log('updateLayout(): changes?', privateData.somethingChanged, '\t forced to?', isForcedToUpdate);
+		// console.log('updateLayout(): changes?', privateData.state.somethingChanged, '\t forced to?', isForcedToUpdate);
 
 
-		if (privateData.somethingChanged || isForcedToUpdate) {
+		if (privateData.state.somethingChanged || isForcedToUpdate) {
 			// Should always merge, because extra properties like "reason" should be carried
 			___mergeNewStateIntoModuleCurrentState(thisInstance, newState);
 
@@ -1114,9 +1112,9 @@
 	}
 
 	function ___doUpdateLayout(thisInstance, isForcedToUpdate) {
-		var elements = thisInstance.elements,
-			privateData = _privateDataOf(thisInstance),
-			publicState = thisInstance.state
+		var privateState = _privateDataOf(thisInstance).state,
+			publicState = thisInstance.state,
+			elements = thisInstance.elements
 			;
 
 		_evaluateHangingBoundries(thisInstance);
@@ -1126,7 +1124,7 @@
 		var topBoundryToPageTop = window.scrollY + hangingTopOffset;
 		var boundriesDistance = publicState.hangingLowerBoundryToPageTop - publicState.contentTopToPageTopInFreeLayout;
 		var requiredRoomInY = publicState.blockHeight + publicState.contentBottomToLowerBoundryInHangingLayouts;
-		var availableRoomInY = privateData.hangingLowerBoundryToWindowTop - hangingTopOffset;
+		var availableRoomInY = privateState.hangingLowerBoundryToWindowTop - hangingTopOffset;
 
 
 		// Might be compensation to some margins but not implemented yet
@@ -1147,7 +1145,7 @@
 
 
 		// console.debug(
-		// 	'\n\t someting changed?', _privateDataOf(thisInstance).somethingChanged,
+		// 	'\n\t someting changed?', privateState.somethingChanged,
 
 		// 	'\n to pin to top:',
 		// 	'\n\t window scroll y:', topBoundryToPageTop,
@@ -1155,7 +1153,7 @@
 		// 	'\n\t window scroll y <= free layout top?', topBoundryToPageTop <= publicState.contentTopToPageTopInFreeLayout,
 
 		// 	'\n to pin to bottom:',
-		// 	'\n\t lower boundry y:', privateData.hangingLowerBoundryToWindowTop,
+		// 	'\n\t lower boundry y:', privateState.hangingLowerBoundryToWindowTop,
 		// 	'\n\t available y:', availableRoomInY,
 		// 	'\n\t required room y:', requiredRoomInY,
 		// 	'\n\t available y <= required room y?', availableRoomInY < requiredRoomInY
@@ -1183,7 +1181,7 @@
 		}
 
 
-		privateData.somethingChanged = false;
+		privateState.somethingChanged = false;
 		delete publicState.methodForSwitchingToCurrentLayout;
 	}
 
@@ -1277,7 +1275,7 @@
 		// Returns false: switching proceeded.
 
 		// options = options || {};
-		var privateData = _privateDataOf(thisInstance),
+		var privateState = _privateDataOf(thisInstance).state,
 			publicState = thisInstance.state,
 			elements = thisInstance.elements,
 			pNameOfLayoutMark = options.pNameOfLayoutMark,
@@ -1287,12 +1285,12 @@
 
 		// if (options.shouldDebug) {
 			// console.debug(
-			// 	!privateData[pNameOfLayoutMark] ? '\n\t'+pNameOfLayoutMark + ' ' + privateData[pNameOfLayoutMark] : '',
+			// 	!privateState.layouts.[pNameOfLayoutMark] ? '\n\t'+pNameOfLayoutMark + ' ' + privateState.layouts.[pNameOfLayoutMark] : '',
 			// 	options.isForcedToUpdate ? '\n\tbecause is forced to? ' + options.isForcedToUpdate : '',
-			// 	privateData.somethingChanged ? '\n\t  because something changed? '+ privateData.somethingChanged : ''
+			// 	privateState.somethingChanged ? '\n\t  because something changed? '+ privateState.somethingChanged : ''
 			// );
 		// }
-		if (privateData[pNameOfLayoutMark] && !privateData.somethingChanged && !options.isForcedToUpdate) return true;
+		if (privateState.layouts[pNameOfLayoutMark] && !privateState.somethingChanged && !options.isForcedToUpdate) return true;
 		options.shouldDebug && logInfo && console.info(logInfo);
 
 		publicState[pNameSaveMethod] = options[pNameSaveMethod];
