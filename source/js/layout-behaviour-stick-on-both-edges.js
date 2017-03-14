@@ -92,7 +92,7 @@
 		// Do NOT comment out any property that will be used later,
 		// because we are using Object.keys() to determine what to check.
 		thisInstance.state = {
-			shouldEnableHanging: false, // the global swith
+			shouldEnable: false, // the global swith
 
 
 			// important measurements and involved switches
@@ -153,10 +153,17 @@
 			isEnabled: false,
 
 
-			// layout status marks
-			isInFreeLayout: true,
-			isPinnedToWindowTop: false,
-			isPinnerToParentBottom: false,
+			state: {
+				// layout status marks
+				layouts: {
+					isFreeLayout: true,
+					isPinnedToWindowTop: false,
+					isPinnerToParentBottom: false,
+				},
+
+				somethingChanged: false,
+				shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
+			},
 
 
 			// functions
@@ -165,13 +172,11 @@
 
 
 			// the queued tasks (states actually), btw, at present no more than one task is allowed
-			queuedStatesForUpdating: [],
+			updatingStatesQueue: [],
 
 
 			// task helpers
-			somethingChanged: false,
 			hangingLowerBoundryToWindowTop: NaN, // save this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
-			shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
 
 
 			// misc
@@ -263,9 +268,9 @@
 		// Store initial states
 		renewState.call(thisInstance, initOptions, true);
 
-		if (typeof initOptions.shouldEnableHanging === 'boolean') {
+		if (typeof initOptions.shouldEnable === 'boolean') {
 			enableOrDisableHangingBehaviour.call(
-				initOptions.shouldEnableHanging,
+				initOptions.shouldEnable,
 				initOptions.reasonForEnablingOrDisabling || initOptions.reason || 'User desired on initialization.'
 			);
 		} else if (thisInstance.options.shouldEnableBahviourAtBeginning) {
@@ -278,17 +283,17 @@
 
 
 		// Third, also update layout whenever user is scrolling or resizing window
-		var boundFunctions = _privateStateOf(thisInstance).boundFunctions;
+		var boundFunctions = _privateDataOf(thisInstance).boundFunctions;
 		window.addEventListener('scroll', boundFunctions.listenToWindowOnScrollEvent);
 		// window.addEventListener('resize', boundFunctions.listenToWindowOnResizeEvent);
 	}
 
-	function _privateStateOf(thisInstance) {
+	function _privateDataOf(thisInstance) {
 		return privatePropertiesHost[thisInstance.__pToken];
 	}
 
 	function _createBoundFunctions(thisInstance) {
-		var boundFunctions = _privateStateOf(thisInstance).boundFunctions;
+		var boundFunctions = _privateDataOf(thisInstance).boundFunctions;
 
 		boundFunctions.doIntervalOfRenewingState =
 			_doIntervalOfRenewingState.bind(null, thisInstance);
@@ -318,21 +323,21 @@
 	}
 
 	function isEnabled() {
-		return _privateStateOf(this).isEnabled;
+		return _privateDataOf(this).isEnabled;
 	}
 
 	function currentLayout() {
-		var privateState = _privateStateOf(this);
+		var layoutStates = _privateDataOf(this).state.layouts;
 
-		if (privateState.isInFreeLayout) return 'free layout';
-		if (privateState.isPinnedToWindowTop) return 'pinned to top';
-		if (privateState.isPinnerToParentBottom) return 'following lower boundry';
+		if (layoutStates.isFreeLayout) return 'free layout';
+		if (layoutStates.isPinnedToWindowTop) return 'pinned to top';
+		if (layoutStates.isPinnerToParentBottom) return 'following lower boundry';
 
 		throw RangeError(logNameOfClass, 'Fatal: None of the three states are active.');
 	}
 
 	function currentLayoutIs(layoutNameToCheck) {
-		var privateState = _privateStateOf(this);
+		var layoutStates = _privateDataOf(this).state.layouts;
 
 		if (!layoutNameToCheck || typeof layoutNameToCheck !== 'string') {
 			return false;
@@ -350,18 +355,18 @@
 		case 'free':
 		case 'freelayout':
 		case 'default':
-			return privateState.isInFreeLayout;
+			return layoutStates.isFreeLayout;
 
 		case 'top':
 		case 'hanging':
 		case 'pinned-to-top':
-			return privateState.isPinnedToWindowTop;
+			return layoutStates.isPinnedToWindowTop;
 
 		case 'following':
 		case 'bottom':
 		case 'following-lower-boundry':
 		case 'pinned-to-bottom':
-			return privateState.isPinnerToParentBottom;
+			return layoutStates.isPinnerToParentBottom;
 		}
 
 		return false;
@@ -443,7 +448,7 @@
 	}
 
 	function _configAnEvent(thisInstance, eventName, options) {
-		var eventsHost = _privateStateOf(thisInstance).events,
+		var eventsHost = _privateDataOf(thisInstance).events,
 			input = options[eventName]
 		;
 
@@ -453,7 +458,7 @@
 	}
 
 	function _dispatchAnEvent(thisInstance, eventName, shouldWarnIfNotHandled, warningMsg) {
-		var eventsHost = _privateStateOf(thisInstance).events;
+		var eventsHost = _privateDataOf(thisInstance).events;
 
 		if (typeof eventsHost[eventName] !== 'function') {
 			if (shouldWarnIfNotHandled) {
@@ -473,7 +478,7 @@
 
 	function _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance) {
 		var elements = thisInstance.elements,
-			boundFunctions = _privateStateOf(thisInstance).boundFunctions
+			boundFunctions = _privateDataOf(thisInstance).boundFunctions
 		;
 
 		window.removeEventListener('scroll', boundFunctions.listenToWindowOnScrollEvent);
@@ -490,18 +495,18 @@
 
 
 
-	function enableOrDisableHangingBehaviour(shouldEnableHanging, reason, shouldDestroyAfterDisabled) {
-		if (typeof shouldEnableHanging === 'undefined') return;
-		shouldEnableHanging = !!shouldEnableHanging;
+	function enableOrDisableHangingBehaviour(shouldEnable, reason, shouldDestroyAfterDisabled) {
+		if (typeof shouldEnable === 'undefined') return;
+		shouldEnable = !!shouldEnable;
 
 
 		var shouldCancel = _onEnablingOrDisablingHangingBehviour(this,
-			shouldEnableHanging,
+			shouldEnable,
 			shouldDestroyAfterDisabled
 		);
 
 		if (shouldCancel) {
-			var logString1 = shouldEnableHanging ? 'Enabling' : shouldDestroyAfterDisabled ? 'DESTORYING' : 'DISABLING';
+			var logString1 = shouldEnable ? 'Enabling' : shouldDestroyAfterDisabled ? 'DESTORYING' : 'DISABLING';
 			console.warn(logString1, 'request was cancelled.');
 			return;
 		}
@@ -509,13 +514,13 @@
 
 
 		var newState = {};
-		newState.shouldEnableHanging = !!shouldEnableHanging;
+		newState.shouldEnable = !!shouldEnable;
 		
 		// must contains a reason property,
 		// for overwriting that of previously queued states.
 		newState.reason = (reason && typeof reason === 'string') ? reason : '<unkown>';
 
-		if (!shouldEnableHanging && shouldDestroyAfterDisabled) {
+		if (!shouldEnable && shouldDestroyAfterDisabled) {
 			newState.isForcedToRenew = true;
 			newState.shouldDestroyAfterDisabled = true;
 		}
@@ -560,7 +565,7 @@
 
 	function _onEnabledOrDisabledHangingBehviour(thisInstance, isNowEnabled) {
 		var publicState = thisInstance.state,
-			privateData = _privateStateOf(thisInstance)
+			privateData = _privateDataOf(thisInstance)
 		;
 
 		// console.log('\n===== _onEnabledOrDisabledHangingBehviour', isNowEnabled, '\n=====');
@@ -597,7 +602,7 @@
 	}
 
 	function _startOrClearIntervalOfRenewingState(thisInstance, shouldStart) {
-		var privateData = _privateStateOf(thisInstance),
+		var privateData = _privateDataOf(thisInstance),
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for renewing related info.',
 			// logString3 =  '\n\t module rootEl:',
@@ -648,7 +653,7 @@
 		_startOrClearIntervalOfUpdateLayout(this, false);
 	}
 	function _startOrClearIntervalOfUpdateLayout(thisInstance, shouldStart) {
-		var privateData = _privateStateOf(thisInstance),
+		var privateData = _privateDataOf(thisInstance),
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for updating layout.',
 			// logString3 = indentAlignsToLogNameOfClass.slice(0, -15) + ' module rootEl:',
@@ -681,13 +686,13 @@
 
 
 
-	// renew all state but NOT the global swith, aka the this.state.shouldEnableHanging
+	// renew all state but NOT the global swith, aka the this.state.shouldEnable
 	function renewStateAndThenUpdate(options) {
 		renewState.call(this, options, false);
 		updateLayout.call(this);
 	}
 
-	// renew all state but NOT the global swith, aka the this.state.shouldEnableHanging
+	// renew all state but NOT the global swith, aka the this.state.shouldEnable
 	function renewState(options, isForcedToRenew) {
 		var didntRequestAnUpdateForHangingLowerBoundryUsedBorder = true;
 
@@ -778,16 +783,16 @@
 
 	function renewContentTopToPageTopInFreeLayout(isForcedToRenewWithoutWaitingForLayoutToSwitch) {
 		var thisInstance = this,
-			privateData = _privateStateOf(thisInstance),
+			privateState = _privateDataOf(thisInstance).state,
 			shouldDoRenew = true,
 			functionForSwitchingToCorrectLayout,
 			forcedImmediateSwitchingWasSkipped = true,
 			pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout'
 			;
 
-		if (!privateData.isInFreeLayout) {
+		if (!privateState.layouts.isFreeLayout) {
 			if (isForcedToRenewWithoutWaitingForLayoutToSwitch) {
-				privateData[pNameNextTimeRenewFreeLayout] = false;
+				privateState[pNameNextTimeRenewFreeLayout] = false;
 				functionForSwitchingToCorrectLayout = thisInstance.state.methodForSwitchingToCurrentLayout;
 				forcedImmediateSwitchingWasSkipped = ____switchLayoutToFree(
 					thisInstance,
@@ -797,7 +802,7 @@
 			} else {
 				// console.debug('Action holded for a later time.');
 				shouldDoRenew = false;
-				privateData[pNameNextTimeRenewFreeLayout] = true;
+				privateState[pNameNextTimeRenewFreeLayout] = true;
 			}
 		}
 
@@ -891,7 +896,7 @@
 
 
 		// values below might be NaN, as long as the refElement is not available any more or is hidden
-		_privateStateOf(thisInstance).hangingLowerBoundryToWindowTop = refNewYToWindowTop;
+		_privateDataOf(thisInstance).hangingLowerBoundryToWindowTop = refNewYToWindowTop;
 		publicState[pName] = refNewYToPageTop;
 
 
@@ -904,7 +909,7 @@
 
 	function requestLayoutUpdate(newStateOrFunctionToGenerateNewStateOrABoolean) {
 		var thisInstance = this,
-			statesQueue = _privateStateOf(thisInstance).queuedStatesForUpdating
+			statesQueue = _privateDataOf(thisInstance).updatingStatesQueue
 		;
 
 
@@ -935,17 +940,17 @@
 		}
 	}
 
-	// function _processAllqueuedStatesForUpdating(thisInstance) {
-	// 	while (_privateStateOf(this).queuedStatesForUpdating.length > 0) {
+	// function _processAllupdatingStatesQueue(thisInstance) {
+	// 	while (_privateDataOf(this).updatingStatesQueue.length > 0) {
 	// 		__processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance);
 	// 	}
 	// 	___updateAllDerivedStatesAccordingToNewState();
 	// }
 
 	function __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance) {
-		var privateData = _privateStateOf(thisInstance);
+		var privateData = _privateDataOf(thisInstance);
 
-		var newState = privateData.queuedStatesForUpdating.shift();
+		var newState = privateData.updatingStatesQueue.shift();
 
 		___detectChangesBetweenStates(thisInstance, thisInstance.state, newState);
 
@@ -976,7 +981,7 @@
 		Object.keys(thisInstance.state).forEach(function (pName) {
 			var thisPropertyWillChange = _____detectChangeForAProperty(pName, state1, state2);
 			if (thisPropertyWillChange) {
-				_privateStateOf(thisInstance).somethingChanged = true;
+				_privateDataOf(thisInstance).state.somethingChanged = true;
 			} else {
 				delete state2[pName];
 			}
@@ -1014,7 +1019,7 @@
 
 
 
-		if (!_privateStateOf(thisInstance).somethingChanged) return;
+		if (!_privateDataOf(thisInstance).state.somethingChanged) return;
 
 
 
@@ -1023,10 +1028,10 @@
 		;
 
 
-		if (typeof state2.shouldEnableHanging === 'boolean') {
+		if (typeof state2.shouldEnable === 'boolean') {
 			pName1 = 'reason';
 
-			var willEnableHanging = state2.shouldEnableHanging;
+			var willEnableHanging = state2.shouldEnable;
 
 			logString1 = willEnableHanging ? 'Enabling' : state2.shouldDestroyAfterDisabled ? 'DESTORYING' : 'DISABLING';
 			logString2 = 'behaviour...\n';
@@ -1058,9 +1063,9 @@
 	// You can also name this function as something like "flushQueuedTasks".
 	function updateLayout() {
 		var thisInstance = this,
-			privateData = _privateStateOf(thisInstance),
+			privateData = _privateDataOf(thisInstance),
 			publicState = thisInstance.state,
-			statesQueue = privateData.queuedStatesForUpdating
+			statesQueue = privateData.updatingStatesQueue
 			;
 
 
@@ -1079,7 +1084,7 @@
 		// since at present I allow no more than one task,
 		// the two policies mentioned above turn to be the same finally.
 
-		// var newState = _processAllqueuedStatesForUpdating(thisInstance); // policy 1
+		// var newState = _processAllupdatingStatesQueue(thisInstance); // policy 1
 		var newState = __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance); // policy 2
 
 
@@ -1100,9 +1105,9 @@
 
 
 
-		if (typeof newState.shouldEnableHanging === 'boolean') {
+		if (typeof newState.shouldEnable === 'boolean') {
 			// reason should be available for onEnabled/onDisabled events
-			_onEnabledOrDisabledHangingBehviour(thisInstance, newState.shouldEnableHanging);
+			_onEnabledOrDisabledHangingBehviour(thisInstance, newState.shouldEnable);
 
 			// now delete the old reason
 			delete publicState.reason;
@@ -1111,7 +1116,7 @@
 
 	function ___doUpdateLayout(thisInstance, isForcedToUpdate) {
 		var elements = thisInstance.elements,
-			privateData = _privateStateOf(thisInstance),
+			privateData = _privateDataOf(thisInstance),
 			publicState = thisInstance.state
 			;
 
@@ -1143,7 +1148,7 @@
 
 
 		// console.debug(
-		// 	'\n\t someting changed?', _privateStateOf(thisInstance).somethingChanged,
+		// 	'\n\t someting changed?', _privateDataOf(thisInstance).somethingChanged,
 
 		// 	'\n to pin to top:',
 		// 	'\n\t window scroll y:', topBoundryToPageTop,
@@ -1157,7 +1162,7 @@
 		// 	'\n\t available y <= required room y?', availableRoomInY < requiredRoomInY
 		// );
 
-		if (!publicState.shouldEnableHanging ||
+		if (!publicState.shouldEnable ||
 			thereIsNoEnoughRoomForThisBlockToHang ||
 			topBoundryToPageTop <= publicState.contentTopToPageTopInFreeLayout
 		) {
@@ -1184,15 +1189,15 @@
 	}
 
 	function ____switchLayoutToFree(thisInstance, isForcedToUpdate, isForcedByAForcedRenew) {
-		var privateData = _privateStateOf(thisInstance),
-			layoutBeforeSwitchingWasExactlyFreeLayout = privateData.isInFreeLayout
+		var privateState = _privateDataOf(thisInstance).state,
+			layoutBeforeSwitchingWasExactlyFreeLayout = privateState.layouts.isFreeLayout // cache old state
 		;
 
 		var switchingWasSkipped =
 		_____commonActionsWhenSwitchingLayout(thisInstance, {
 			methodForSwitchingToCurrentLayout: ____switchLayoutToFree, // of cause, should be itself
 			isForcedToUpdate: isForcedToUpdate,
-			pNameOfLayoutMark: 'isInFreeLayout',
+			pNameOfLayoutMark: 'isFreeLayout',
 			pNameOfCssClass: isForcedByAForcedRenew ? 'layoutFreeTemporary' : 'layoutFree',
 			rootElHeight: '', // thisInstance.state.blockHeight + 'px'
 			contentElTop: ''
@@ -1209,11 +1214,11 @@
 			// }
 
 			var shouldAlwaysRenewFreeLayoutInfo = thisInstance.options.shouldAlwaysRenewFreeLayoutInfo,
-				pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout'
+				pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout' // for better minification
 			;
 
 			if (
-				(shouldAlwaysRenewFreeLayoutInfo || privateData[pNameNextTimeRenewFreeLayout])
+				(shouldAlwaysRenewFreeLayoutInfo || privateState[pNameNextTimeRenewFreeLayout])
 				&& !layoutBeforeSwitchingWasExactlyFreeLayout
 				// && !isForcedByAForcedRenew
 			) {
@@ -1231,7 +1236,7 @@
 				renewStateAndThenUpdate.call(thisInstance);
 			}
 
-			privateData[pNameNextTimeRenewFreeLayout] = false;
+			privateState[pNameNextTimeRenewFreeLayout] = false;
 		}
 
 
@@ -1273,7 +1278,7 @@
 		// Returns false: switching proceeded.
 
 		// options = options || {};
-		var privateData = _privateStateOf(thisInstance),
+		var privateData = _privateDataOf(thisInstance),
 			publicState = thisInstance.state,
 			elements = thisInstance.elements,
 			pNameOfLayoutMark = options.pNameOfLayoutMark,
@@ -1303,13 +1308,9 @@
 	}
 
 	function ______soloLayoutStateTo(thisInstance, propertyKeyOfLayoutState) {
-		var privateData = _privateStateOf(thisInstance);
-		[
-			'isInFreeLayout',
-			'isPinnedToWindowTop',
-			'isPinnerToParentBottom'
-		].forEach(function (key) {
-			privateData[key] = propertyKeyOfLayoutState === key;
+		var layoutStates = _privateDataOf(thisInstance).state.layouts;
+		Object.keys(layoutStates).forEach(function (key) {
+			layoutStates[key] = propertyKeyOfLayoutState === key;
 		});
 	}
 
