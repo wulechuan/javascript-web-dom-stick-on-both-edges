@@ -70,7 +70,7 @@
 			// Instead, we may choose to invoke:
 			//	<instanceObject>.enable('My ad is ready')
 			// explicitly, to enable it at proper anytime.
-			shouldEnableBahviourAtBeginning: false,
+			shouldEnableOnInit: false,
 
 			// if there are some other coupled blocks might effect the top of this block
 			shouldAlwaysRenewFreeLayoutInfo: true, // everytime it enters the free layout mode
@@ -273,7 +273,7 @@
 				initOptions.shouldEnable,
 				initOptions.reasonForEnablingOrDisabling || initOptions.reason || 'User desired on initialization.'
 			);
-		} else if (thisInstance.options.shouldEnableBahviourAtBeginning) {
+		} else if (thisInstance.options.shouldEnableOnInit) {
 			enable.call(thisInstance, 'Forced to enabled on initialization.');
 		}
 
