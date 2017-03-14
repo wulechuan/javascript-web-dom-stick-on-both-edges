@@ -159,12 +159,20 @@
 					isPinnerToParentBottom: false,
 				},
 
+
 				// the global switch
 				isEnabled: false,
 
+
+				// helpers
 				somethingChanged: false,
-				hangingLowerBoundryToWindowTop: NaN, // save this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
+				hangingLowerBoundryToWindowTop: NaN, // Saving this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
 				shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
+
+
+				// misc
+				intervalIDForRenewingState: NaN,
+				intervalIDForUpdatingLayout: NaN
 			},
 
 
@@ -175,11 +183,6 @@
 
 			// the queued tasks (states actually), btw, at present no more than one task is allowed
 			updatingStatesQueue: [],
-
-
-			// misc
-			intervalIDForRenewingState: NaN,
-			intervalIDForUpdatingLayout: NaN
 		};
 
 		thisInstance.__pToken = generateAUniqueTokenUnder(privatePropertiesHost, nameOfClass);
@@ -598,12 +601,13 @@
 
 	function _startOrClearIntervalOfRenewingState(thisInstance, shouldStart) {
 		var privateData = _privateDataOf(thisInstance),
+			privateState = privateData.state,
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for renewing related info.',
 			// logString3 =  '\n\t module rootEl:',
 			// rootEl = thisInstance.elements.root,
 			pNameForIndex = 'intervalIDForRenewingState',
-			currentIndex = privateData[pNameForIndex],
+			currentIndex = privateState[pNameForIndex],
 			hasActiveInterval = !isNaN(currentIndex)
 			;
 
@@ -611,7 +615,7 @@
 			console.info(logString1, logString2
 				// , logString3, rootEl
 			);
-			privateData[pNameForIndex] = setInterval(
+			privateState[pNameForIndex] = setInterval(
 				privateData.boundFunctions.doIntervalOfRenewingState,
 				thisInstance.options.intervalTimeInMSForRenewingState
 			);
@@ -620,7 +624,7 @@
 				// , logString3, rootEl
 			);
 			clearInterval(currentIndex);
-			privateData[pNameForIndex] = NaN;			
+			privateState[pNameForIndex] = NaN;			
 		}
 	}
 
@@ -649,12 +653,13 @@
 	}
 	function _startOrClearIntervalOfLayoutUpdate(thisInstance, shouldStart) {
 		var privateData = _privateDataOf(thisInstance),
+			privateState = privateData.state,
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for updating layout.',
 			// logString3 = indentAlignsToLogNameOfClass.slice(0, -15) + ' module rootEl:',
 			// rootEl = this.elements.root,
 			pNameForIndex = 'intervalIDForUpdatingLayout',
-			currentIndex = privateData[pNameForIndex],
+			currentIndex = privateState[pNameForIndex],
 			hasActiveInterval = !isNaN(currentIndex)
 			;
 
@@ -662,7 +667,7 @@
 			console.info(logString1, logString2
 				// , '\n' + logString3, rootEl
 			);
-			privateData[pNameForIndex] = setInterval(
+			privateState[pNameForIndex] = setInterval(
 				privateData.boundFunctions.doIntervalOfLayoutUpdate,
 				thisInstance.options.intervalTimeInMSForUpdatingLayout
 			);
@@ -671,7 +676,7 @@
 				// , '\n ' + logString3, rootEl
 			);
 			clearInterval(currentIndex);
-			privateData[pNameForIndex] = NaN;			
+			privateState[pNameForIndex] = NaN;			
 		}
 	}
 	function _doIntervalOfLayoutUpdate(thisInstance) {
