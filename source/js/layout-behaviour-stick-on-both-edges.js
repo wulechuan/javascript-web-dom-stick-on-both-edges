@@ -141,7 +141,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 			contentTopToWindowTopInHangingLayouts: 0,
 			contentBottomToLowerBoundryInHangingLayouts: 15,
 
-			shouldUseBottomEdgeOfLowerBoundryRefElement: false,
+			shouldUseBottomEdgeOfLowerBoundryRefElement: true,
 			hangingLowerBoundryToPageTop: NaN
 
 
@@ -176,7 +176,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		thisInstance.elements = {
 			root: constructionOptions.rootElement, // as the wrapper and the placeholder for the chiefContent element
 			chiefContent: constructionOptions.chiefContentElement,
-			hangingLowerBoundryRef: null
+			lowerBoundryRef: null
 		};
 
 
@@ -416,35 +416,6 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 			;
 
 
-		pName1 = 'hangingLowerBoundryRef'; // property name in this.elements
-		pName2 = pName1+'Element';              // property name in options argument
-		if (options.hasOwnProperty(pName2)) {
-			pValue = options[pName2];
-
-            var inputElementIsValid = true;
-
-			if (pValue !== null) { // null value is acceptable for removing lower boundry ref element
-				if (!(pValue instanceof Node)) {
-					inputElementIsValid = false;
-				} else {
-                    var rootElement = elements.root;
-                    if (domAIsChildOfB(pValue, rootElement) || pValue === rootElement) {
-                        inputElementIsValid = false;
-                        console.warn('The lower boundry ref element is a descendant of the root element. This doesn\'t make any sense.');
-                    } else if (domAIsChildOfB(rootElement, pValue)) {
-                        moduleOptions.shouldUseBottomEdgeOfLowerBoundryRefElement = true;
-                    } else {
-                        // pValue is a valid element to use as ref, nothing to do at present
-                    }
-				}
-			}
-
-            if (inputElementIsValid && elements[pName1] !== pValue) {
-                elements[pName1] = pValue;
-            }
-		}
-
-
 
 		pName1 = 'intervalTimeForRenewingState';
 		if (options.hasOwnProperty(pName1)) {
@@ -485,8 +456,21 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		_configAnEvent(thisInstance, 'onIntervalEnd', options);
 	}
 
-    function _decideLowerBoundryUsedEdge(desiredEdge) {
+    function _decideLowerBoundryUsedEdge(thisInstance, desiredEdgeIsBottom) {
+        var publicState = thisInstance.state,
+            pName = 'shouldUseBottomEdgeOfLowerBoundryRefElement',
+            elements = thisInstance.elements,
+            rootElement = elements.root,
+            refElement = elements.lowerBoundryRef
+            ;
 
+        if (typeof desiredEdgeIsBottom !== 'boolean') return publicState[pName];
+
+        if (domAIsChildOfB(rootElement, refElement)) {
+            publicState[pName] = true;
+        } else {
+            publicState[pName] = desiredEdgeIsBottom;
+        }
     }
 
 	function _configAnEvent(thisInstance, eventName, options) {
@@ -735,7 +719,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 	// renew all state but NOT the global switch, aka the this.state.shouldEnable
 	function renewState(options, isForcedToRenew) {
-		var didntRequestAnUpdateForHangingLowerBoundryUsedBorder = true;
+		var didntRequestAnUpdateForLowerBoundryUsedEdge = true;
 
 
 
@@ -751,8 +735,12 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 				isForcedToRenew
 			);
 
+			didntRequestAnUpdateForLowerBoundryUsedEdge = renewLowerBoundryRefElement.call(this,
+				options.lowerBoundryRefElement,
+				isForcedToRenew
+			);
 
-			didntRequestAnUpdateForHangingLowerBoundryUsedBorder = renewUsedEdgeOfLowerBoundryRefElement.call(this,
+			didntRequestAnUpdateForLowerBoundryUsedEdge = renewUsedEdgeOfLowerBoundryRefElement.call(this,
 				options.shouldUseBottomEdgeOfLowerBoundryRefElement,
 				isForcedToRenew
 			);
@@ -762,7 +750,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		// actions that need no arguments
 
-		if (didntRequestAnUpdateForHangingLowerBoundryUsedBorder) {
+		if (didntRequestAnUpdateForLowerBoundryUsedEdge) {
 			renewHangingLowerBoundryValue.call(this, isForcedToRenew);
 		} else {
 			// renewUsedEdgeOfLowerBoundryRefElement will implicitly call renewHangingLowerBoundryValue
@@ -807,6 +795,41 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		requestLayoutUpdate.call(this, newState);
 	}
+
+    function renewLowerBoundryRefElement(newElement, isForcedToRenew) {
+        var elements = this.elements,
+            rootElement = elements.root,
+            pName = 'lowerBoundryRef',
+            newElementIsValid = true,
+            logString1 = 'The lower boundry ref element',
+            logString2 = 'This doesn\'t make any sense. Ref element NOT renewed.'
+            ;
+
+        if (newElement !== null) { // null value is acceptable for removing lower boundry ref element
+            if (!(newElement instanceof Node)) {
+                newElementIsValid = false;
+            } else if (domAIsChildOfB(newElement, rootElement)) {
+                newElementIsValid = false;
+                console.warn(logString1, 'is a descendant of the root element.', logString2);
+            } else if (newElement === rootElement) {
+                newElementIsValid = false;
+                console.warn(logString1, 'is the same dom as the root element.', logString2);                
+            }
+        }
+
+        if (newElementIsValid && elements[pName] !== newElement) {
+            elements[pName] = newElement;
+
+            if (domAIsChildOfB(rootElement, newElement)) {
+                this.state.shouldUseBottomEdgeOfLowerBoundryRefElement = true;
+                return false; // means the "shouldUseBottomEdgeOfLowerBoundryRefElement" has been changed here
+            }
+
+            return true; // means the "shouldUseBottomEdgeOfLowerBoundryRefElement" has NOT been changed here
+        }
+
+        return true; // nothing of the public state changed inside this function
+    }
 
 	function renewContentBottomDistanceToLowerBoundry(newExtraSpace, isForcedToRenew) {
 		var newState = {};
@@ -887,7 +910,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 			elements = thisInstance.elements
 		;
 
-		if (elements.parentPositionRef === elements.hangingLowerBoundryRef ||
+		if (domAIsChildOfB(elements.root, elements.lowerBoundryRef) ||
 			shouldUseBottomEdgeOfLowerBoundryRefElement === null ||
 			shouldUseBottomEdgeOfLowerBoundryRefElement === undefined
 		) {
