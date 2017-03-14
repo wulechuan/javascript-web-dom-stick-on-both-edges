@@ -76,7 +76,7 @@
 			shouldAlwaysRenewFreeLayoutInfo: true, // everytime it enters the free layout mode
 
 			cssClassName: {
-				layoutFreeTemporary: 'js-stick-on-both-edges-layout-temporary-state',
+				layoutFreeTemporary: 'js-stick-on-both-edges-layout-temporarily-free',
 				layoutFree: 'js-stick-on-both-edges-layout-free',
 				layoutPinToWindowTop: 'js-stick-on-both-edges-layout-hang-to-window-top',
 				layoutPinToParentBottom: 'js-stick-on-both-edges-layout-pin-to-lower-boundry',

@@ -4,11 +4,11 @@
 }
 
 /*
-	The "js-stick-on-both-edges-layout-temporary-state"
+	The "js-stick-on-both-edges-layout-temporarily-free"
 	is designed for avoiding box-shadow flashing
 	during swithing layout temporarily to free layout.
 */
-.js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-temporary-state,
+.js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-temporarily-free,
 .js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-hang-to-window-top,
 .js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-pin-to-lower-boundry {
 	box-shadow: 0 5px 20px rgba(0, 0, 0, 0.19);
