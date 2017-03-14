@@ -151,9 +151,6 @@
 
 
 		var privateData = {
-			isEnabled: false,
-
-
 			state: {
 				// layout status marks
 				layouts: {
@@ -161,6 +158,9 @@
 					isPinnedToWindowTop: false,
 					isPinnerToParentBottom: false,
 				},
+
+				// the global switch
+				isEnabled: false,
 
 				somethingChanged: false,
 				hangingLowerBoundryToWindowTop: NaN, // save this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
