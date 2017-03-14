@@ -308,8 +308,8 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		// Third, also update layout whenever user is scrolling or resizing window
 		var boundFunctions = _privateDataOf(thisInstance).boundFunctions;
-		window.addEventListener('scroll', boundFunctions.listenToWindowOnScrollEvent);
-		// window.addEventListener('resize', boundFunctions.listenToWindowOnResizeEvent);
+		window.addEventListener('scroll', boundFunctions.listenToScrollEvent);
+		// window.addEventListener('resize', boundFunctions.listenToResizeEvent);
 	}
 
 	function _privateDataOf(thisInstance) {
@@ -342,8 +342,8 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 			boundFunctions.doUpdateLayout
 		);
 
-		boundFunctions.listenToWindowOnScrollEvent = throttleWrappedAction;
-		boundFunctions.listenToWindowOnResizeEvent = throttleWrappedAction;
+		boundFunctions.listenToScrollEvent = throttleWrappedAction;
+		boundFunctions.listenToResizeEvent = throttleWrappedAction;
 	}
 
 	function isEnabled() {
@@ -504,8 +504,8 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 			boundFunctions = _privateDataOf(thisInstance).boundFunctions
 		;
 
-		window.removeEventListener('scroll', boundFunctions.listenToWindowOnScrollEvent);
-		window.removeEventListener('resize', boundFunctions.listenToWindowOnResizeEvent);
+		window.removeEventListener('scroll', boundFunctions.listenToScrollEvent);
+		window.removeEventListener('resize', boundFunctions.listenToResizeEvent);
 
 		elements.root.style.height = '';
 		elements.chiefContent.style.top = '';
