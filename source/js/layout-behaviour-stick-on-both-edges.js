@@ -93,7 +93,7 @@
 		// Do NOT comment out any property that will be used later,
 		// because we are using Object.keys() to determine what to check.
 		thisInstance.state = {
-			shouldEnable: false, // the global swith
+			shouldEnable: false, // the global switch
 
 
 			// important measurements and involved switches
@@ -683,13 +683,13 @@
 
 
 
-	// renew all state but NOT the global swith, aka the this.state.shouldEnable
+	// renew all state but NOT the global switch, aka the this.state.shouldEnable
 	function renewStateAndThenUpdate(options) {
 		renewState.call(this, options, false);
 		updateLayout.call(this);
 	}
 
-	// renew all state but NOT the global swith, aka the this.state.shouldEnable
+	// renew all state but NOT the global switch, aka the this.state.shouldEnable
 	function renewState(options, isForcedToRenew) {
 		var didntRequestAnUpdateForHangingLowerBoundryUsedBorder = true;
 
@@ -1199,7 +1199,7 @@
 			rootElHeight: '', // thisInstance.state.blockHeight + 'px'
 			contentElTop: ''
 
-			// , logStringWhenActuallySwitching: '*** Swithing content layout back to free layout...'
+			// , logStringWhenActuallySwitching: '*** switching content layout back to free layout...'
 			// , shouldDebug: true
 		});
 
