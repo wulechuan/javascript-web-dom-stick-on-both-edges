@@ -68,7 +68,7 @@
 			// This could be especially true when the block is an Ad.
 			// So we might choose not to enable the behaviour of this controller instance.
 			// Instead, we may choose to invoke:
-			//	<instanceObject>.enableHangingBehaviour('My ad is ready')
+			//	<instanceObject>.enable('My ad is ready')
 			// explicitly, to enable it at proper anytime.
 			shouldEnableBahviourAtBeginning: false,
 
@@ -219,9 +219,9 @@
 		thisInstance.currentLayout = currentLayout;
 		thisInstance.currentLayoutIs = currentLayoutIs;
 
-		thisInstance.enableOrDisableHangingBehaviour = enableOrDisableHangingBehaviour;
-		thisInstance.enableHangingBehaviour = enableHangingBehaviour;
-		thisInstance.disableHangingBehaviour = disableHangingBehaviour;
+		thisInstance.enableOrDisable = enableOrDisable;
+		thisInstance.enable = enable;
+		thisInstance.disable = disable;
 
 		thisInstance.destroy = destroy;
 
@@ -269,12 +269,12 @@
 		renewState.call(thisInstance, initOptions, true);
 
 		if (typeof initOptions.shouldEnable === 'boolean') {
-			enableOrDisableHangingBehaviour.call(
+			enableOrDisable.call(
 				initOptions.shouldEnable,
 				initOptions.reasonForEnablingOrDisabling || initOptions.reason || 'User desired on initialization.'
 			);
 		} else if (thisInstance.options.shouldEnableBahviourAtBeginning) {
-			enableHangingBehaviour.call(thisInstance, 'Forced to enabled on initialization.');
+			enable.call(thisInstance, 'Forced to enabled on initialization.');
 		}
 
 		updateLayout.call(thisInstance);
@@ -473,7 +473,7 @@
 	}
 
 	function destroy(reason) {
-		disableHangingBehaviour.call(this, reason, true);
+		disable.call(this, reason, true);
 	}
 
 	function _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance) {
@@ -495,7 +495,7 @@
 
 
 
-	function enableOrDisableHangingBehaviour(shouldEnable, reason, shouldDestroyAfterDisabled) {
+	function enableOrDisable(shouldEnable, reason, shouldDestroyAfterDisabled) {
 		if (typeof shouldEnable === 'undefined') return;
 		shouldEnable = !!shouldEnable;
 
@@ -531,12 +531,12 @@
 		updateLayout.call(this);
 	}
 
-	function enableHangingBehaviour(reasonForEnabling) {
-		enableOrDisableHangingBehaviour.call(this, true, reasonForEnabling);
+	function enable(reasonForEnabling) {
+		enableOrDisable.call(this, true, reasonForEnabling);
 	}
 
-	function disableHangingBehaviour(reasonForDisabling, shouldDestroyAfterDisabled) {
-		enableOrDisableHangingBehaviour.call(this, false, reasonForDisabling, shouldDestroyAfterDisabled);
+	function disable(reasonForDisabling, shouldDestroyAfterDisabled) {
+		enableOrDisable.call(this, false, reasonForDisabling, shouldDestroyAfterDisabled);
 	}
 
 	function _onEnablingOrDisablingHangingBehviour(thisInstance, willEnable, shouldDestroyAfterDisabled) {
