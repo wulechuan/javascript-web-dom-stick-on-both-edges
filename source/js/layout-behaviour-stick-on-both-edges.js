@@ -7,7 +7,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		nameOfClass,
 		generateAUniqueTokenUnder,
 		mergeBIntoA,
-		window.jQuery.throttle
+		window.jQuery.throttle || window.Cowboy.throttle
 	);
 
 
