@@ -2,13 +2,15 @@
 
 /*** Class: LayoutBehaviour:StickOnBothEdges
  */
-(function (factory) { var nameOfClass = 'StickOnBothEdges';
+module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 	return factory(
 		nameOfClass,
 		generateAUniqueTokenUnder,
-		window.jQuery.extend,
+		mergeBIntoA,
 		window.jQuery.throttle
 	);
+
+
 
 	function generateAUniqueTokenUnder(tokenHost, prefix) {
 		function __doGenerate() {
@@ -24,7 +26,28 @@
 
 		return token;
 	}
-})(function factory(nameOfClass, generateAUniqueTokenUnder, jQueryExtendsAnObject, jQueryThrottle) {
+
+	function mergeBIntoA(a, b) {
+		if (!a || typeof a !== 'object') return null;
+		if (!b || typeof b !== 'object') return a;
+
+		for (var key in b) {
+			var vB = b[key];
+			if (vB === undefined) continue; // null value is acceptable
+			if (Array.isArray(vB)) {
+				if (Array.isArray(a[key])) {
+					Array.prototype.push.apply(a[key], vB); // keep reference to original a[key]
+				} else {
+					a[key] = vB;
+				}
+			} else {
+				a[key] = vB;
+			}
+		}
+
+		return a;
+	}
+})(function factory(nameOfClass, generateAUniqueTokenUnder, mergeBIntoA, jQueryThrottle) {
 	'use strict';
 
 	// private and also static properties (shared across instances)
@@ -931,7 +954,7 @@
 			!Array.isArray(newStateOrFunctionToGenerateNewStateOrABoolean)
 		) {
 			// console.debug('merging states in the queue...');
-			jQueryExtendsAnObject(stateToUpdate, newStateOrFunctionToGenerateNewStateOrABoolean);
+			mergeBIntoA(stateToUpdate, newStateOrFunctionToGenerateNewStateOrABoolean);
 		} else {
 			stateToUpdate.isForcedToUpdate = stateToUpdate.isForcedToUpdate ||
 				(typeof newStateOrFunctionToGenerateNewStateOrABoolean === 'undefined') ||
@@ -969,7 +992,7 @@
 
 
 	function ___mergeNewStateIntoModuleCurrentState(thisInstance, newState) {
-		jQueryExtendsAnObject(thisInstance.state, newState);
+		mergeBIntoA(thisInstance.state, newState);
 	}
 
 	function ___detectChangesBetweenStates(thisInstance, state1, state2) {
