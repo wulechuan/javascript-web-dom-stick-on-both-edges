@@ -2,7 +2,7 @@
   "name": "@wulechuan/dom-stick-on-both-edges",
   "version": "0.0.1",
   "description": "Hang a dom to window top (with customizable offset of course) or stick it down to somewhere of the page so that it moves with the page when the page is scrolling.",
-  "main": "source/js/layout-behaviour-stick-on-both-edges.js",
+  "main": "build/js/layout-behaviour-stick-on-both-edges.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

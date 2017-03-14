@@ -16,7 +16,7 @@
 		}
 
 		prefix = typeof prefix === 'string' ? prefix : '';
-        prefix = prefix.replace(/\-+$/, '') + '-';
+		prefix = prefix.replace(/\-+$/, '') + '-';
 		var token = __doGenerate();
 		while (tokenHost[token]) {
 			token = __doGenerate();
@@ -81,9 +81,9 @@
 				layoutPinToWindowTop: 'js-stick-on-both-edges-layout-hang-to-window-top',
 				layoutPinToParentBottom: 'js-stick-on-both-edges-layout-pin-to-lower-boundry',
 			},
-			intervalTimeInMSForRenewingRelativInfo: 500,
+			intervalTimeInMSForRenewingState: 500,
 			intervalTimeInMSForUpdatingLayout: 40,
-			delayTimeInMSForScrollAndResizeLinstenrThrottle: 16
+			throttleTimeInMSForScrollAndResizeListeners: 16
 		};
 
 
@@ -100,7 +100,7 @@
 			contentTopToPageTopInFreeLayout: NaN,
 			contentTopToRootTopInFreeLayout: 0,
 			contentTopToWindowTopInHangingLayouts: 0,
-			contentBottomDistanceToLowerBoundryInHangingLayouts: 15,
+			contentBottomToLowerBoundryInHangingLayouts: 15,
 
 			shouldUseBottomOfHangingLowerBoundryRef: false,
 			hangingLowerBoundryToPageTop: NaN
@@ -161,11 +161,11 @@
 
 			// functions
 			events: {},
-			boundMethods: {},
+			boundFunctions: {},
 
 
 			// the queued tasks (states actually), btw, at present no more than one task is allowed
-			queuedStatesForUpdatesOfLayout: [],
+			queuedStatesForUpdating: [],
 
 
 			// task helpers
@@ -175,7 +175,7 @@
 
 
 			// misc
-			intervalIDForRenewingRelatedInfo: NaN,
+			intervalIDForRenewingState: NaN,
 			intervalIDForUpdatingLayout: NaN
 		};
 
@@ -220,23 +220,23 @@
 
 		thisInstance.destroy = destroy;
 
-		thisInstance.renewAllRelatedInfoAndThenUpdate = renewAllRelatedInfoAndThenUpdate;
-		thisInstance.renewAllRelatedInfo = renewAllRelatedInfo;
-		thisInstance.renewContentTopToPageTopInFreeLayout = renewContentTopToPageTopInFreeLayout;
-		thisInstance.renewContentHeight = renewContentHeight;
-		thisInstance.renewContentTopToRootTopInFreeLayout = renewContentTopToRootTopInFreeLayout;
+		thisInstance.renewStateAndThenUpdate = renewStateAndThenUpdate;
+		thisInstance.renewState = renewState;
+		// thisInstance.renewContentTopToPageTopInFreeLayout = renewContentTopToPageTopInFreeLayout;
+		// thisInstance.renewContentHeight = renewContentHeight;
+		// thisInstance.renewContentTopToRootTopInFreeLayout = renewContentTopToRootTopInFreeLayout;
 		thisInstance.renewContentTopToWindowTopInHangingLayouts = renewContentTopToWindowTopInHangingLayouts;
 		thisInstance.renewHangingLowerBoundryValue = renewHangingLowerBoundryValue;
 		thisInstance.renewHangingLowerBoundryUsedBorder = renewHangingLowerBoundryUsedBorder;
 
 
 		// a very traditional way to safely update related info
-		thisInstance.startIntervalForRenewingRelatedInfo = startIntervalForRenewingRelatedInfo;
-		thisInstance.clearIntervalForRenewingRelatedInfo = clearIntervalForRenewingRelatedInfo;
-		thisInstance.startIntervalForUpdateLayout = startIntervalForUpdateLayout;
-		thisInstance.clearIntervalForUpdateLayout = clearIntervalForUpdateLayout;
+		thisInstance.startIntervalOfRenewingState = startIntervalOfRenewingState;
+		thisInstance.clearIntervalOfRenewingState = clearIntervalOfRenewingState;
+		thisInstance.startIntervalOfUpdateLayout = startIntervalOfUpdateLayout;
+		thisInstance.clearIntervalOfUpdateLayout = clearIntervalOfUpdateLayout;
 
-		thisInstance.requestAnUpdateOfLayout = requestAnUpdateOfLayout;
+		thisInstance.requestLayoutUpdate = requestLayoutUpdate;
 		thisInstance.updateLayout = updateLayout;
 
 
@@ -261,7 +261,7 @@
 
 
 		// Store initial states
-		renewAllRelatedInfo.call(thisInstance, initOptions, true);
+		renewState.call(thisInstance, initOptions, true);
 
 		if (typeof initOptions.shouldEnableHanging === 'boolean') {
 			enableOrDisableHangingBehaviour.call(
@@ -278,26 +278,26 @@
 
 
 		// Third, also update layout whenever user is scrolling or resizing window
-		var boundMethods = privatePropertiesHost[thisInstance.__pToken].boundMethods;
-		window.addEventListener('scroll', boundMethods.listenToWindowOnScrollEvent);
-		// window.addEventListener('resize', boundMethods.listenToWindowOnResizeEvent);
+		var boundFunctions = privatePropertiesHost[thisInstance.__pToken].boundFunctions;
+		window.addEventListener('scroll', boundFunctions.listenToWindowOnScrollEvent);
+		// window.addEventListener('resize', boundFunctions.listenToWindowOnResizeEvent);
 	}
-	
+
 	function _createBoundFunctions(thisInstance) {
-		var boundMethods = privatePropertiesHost[thisInstance.__pToken].boundMethods;
+		var boundFunctions = privatePropertiesHost[thisInstance.__pToken].boundFunctions;
 
-		boundMethods.doIntervalForRenewingRelatedInfo =
-			_doIntervalForRenewingRelatedInfo.bind(null, thisInstance);
+		boundFunctions.doIntervalOfRenewingState =
+			_doIntervalOfRenewingState.bind(null, thisInstance);
 
-		boundMethods.doIntervalForUpdateLayout =
-			_doIntervalForUpdateLayout.bind(null, thisInstance);
+		boundFunctions.doIntervalOfUpdateLayout =
+			_doIntervalOfUpdateLayout.bind(null, thisInstance);
 
 
 
 		// Even without a task in queue, we still need to update layout constantly.
 		// For example when user is scrolliing the page, nothing about the important measurements changed
 		// but obviously the ___doUpdateLayout should be invoked still.
-		boundMethods.doUpdateLayout = (function (/*event*/) {
+		boundFunctions.doUpdateLayout = (function (/*event*/) {
 			___doUpdateLayout(thisInstance);
 		}).bind(thisInstance);
 
@@ -305,12 +305,12 @@
 
 
 		var throttleWrappedAction = jQueryThrottle(
-			thisInstance.options.delayTimeInMSForScrollAndResizeLinstenrThrottle,
-			boundMethods.doUpdateLayout
+			thisInstance.options.throttleTimeInMSForScrollAndResizeListeners,
+			boundFunctions.doUpdateLayout
 		);
 
-		boundMethods.listenToWindowOnScrollEvent = throttleWrappedAction;
-		boundMethods.listenToWindowOnResizeEvent = throttleWrappedAction;
+		boundFunctions.listenToWindowOnScrollEvent = throttleWrappedAction;
+		boundFunctions.listenToWindowOnResizeEvent = throttleWrappedAction;
 	}
 
 	function isEnabled() {
@@ -373,25 +373,25 @@
 			;
 
 
-		pName1 = 'hangingLowerBoundryRefEl'; // property name in options
-		pName2 = 'hangingLowerBoundryRef'; // property name in this.elements
-		if (options.hasOwnProperty(pName1)) {
-			pValue = options[pName1];
+		pName1 = 'hangingLowerBoundryRef'; // property name in this.elements
+		pName2 = pName1+'El';              // property name in options argument
+		if (options.hasOwnProperty(pName2)) {
+			pValue = options[pName2];
 
-			if (!(elements[pName2] instanceof Node)) {
+			if (!(elements[pName1] instanceof Node)) {
 				// if element Never set yet
 
 				if (!(pValue instanceof Node)) {
-					elements[pName2] = elements.parentPositionRef;
+					elements[pName1] = elements.parentPositionRef;
 				} else {
-					elements[pName2] = pValue;
+					elements[pName1] = pValue;
 				}
 
 			} else {
 				// if element already exists
 
 				if (pValue instanceof Node) {
-					elements[pName2] = pValue;
+					elements[pName1] = pValue;
 				}
 
 			}
@@ -399,7 +399,7 @@
 
 
 
-		pName1 = 'intervalTimeInMSForRenewingRelativInfo';
+		pName1 = 'intervalTimeInMSForRenewingState';
 		if (options.hasOwnProperty(pName1)) {
 			pValue = parseInt(options[pName1]);
 			if (!isNaN(pValue) && pValue > 20) { // acceptable threshold
@@ -469,11 +469,11 @@
 
 	function _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance) {
 		var elements = thisInstance.elements,
-			boundMethods = privatePropertiesHost[thisInstance.__pToken].boundMethods
+			boundFunctions = privatePropertiesHost[thisInstance.__pToken].boundFunctions
 		;
 
-		window.removeEventListener('scroll', boundMethods.listenToWindowOnScrollEvent);
-		window.removeEventListener('resize', boundMethods.listenToWindowOnResizeEvent);
+		window.removeEventListener('scroll', boundFunctions.listenToWindowOnScrollEvent);
+		window.removeEventListener('resize', boundFunctions.listenToWindowOnResizeEvent);
 
 		elements.root.style.height = '';
 		elements.chiefContent.style.top = '';
@@ -516,7 +516,7 @@
 			newState.shouldDestroyAfterDisabled = true;
 		}
 
-		requestAnUpdateOfLayout.call(this, newState);
+		requestLayoutUpdate.call(this, newState);
 
 
 		updateLayout.call(this);
@@ -571,8 +571,8 @@
 		} else {
 			_dispatchAnEvent(thisInstance, 'onDisabled');
 
-			thisInstance.clearIntervalForRenewingRelatedInfo();
-			thisInstance.clearIntervalForUpdateLayout();
+			thisInstance.clearIntervalOfRenewingState();
+			thisInstance.clearIntervalOfUpdateLayout();
 
 			if (publicState.shouldDestroyAfterDisabled) {
 				_destroyOneInstanceAfterLayoutRestoredToFree(thisInstance);
@@ -584,21 +584,21 @@
 
 
 
-	function startIntervalForRenewingRelatedInfo() {
-		_startOrClearIntervalForRenewingRelatedInfo(this, true);
+	function startIntervalOfRenewingState() {
+		_startOrClearIntervalOfRenewingState(this, true);
 	}
 
-	function clearIntervalForRenewingRelatedInfo() {
-		_startOrClearIntervalForRenewingRelatedInfo(this, false);
+	function clearIntervalOfRenewingState() {
+		_startOrClearIntervalOfRenewingState(this, false);
 	}
 
-	function _startOrClearIntervalForRenewingRelatedInfo(thisInstance, shouldStart) {
+	function _startOrClearIntervalOfRenewingState(thisInstance, shouldStart) {
 		var privateData = privatePropertiesHost[thisInstance.__pToken],
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for renewing related info.',
 			// logString3 =  '\n\t module rootEl:',
 			// rootEl = thisInstance.elements.root,
-			pNameForIndex = 'intervalIDForRenewingRelatedInfo',
+			pNameForIndex = 'intervalIDForRenewingState',
 			currentIndex = privateData[pNameForIndex],
 			hasActiveInterval = !isNaN(currentIndex)
 			;
@@ -608,8 +608,8 @@
 				// , logString3, rootEl
 			);
 			privateData[pNameForIndex] = setInterval(
-				privateData.boundMethods.doIntervalForRenewingRelatedInfo,
-				thisInstance.options.intervalTimeInMSForRenewingRelativInfo
+				privateData.boundFunctions.doIntervalOfRenewingState,
+				thisInstance.options.intervalTimeInMSForRenewingState
 			);
 		} else if (!shouldStart && hasActiveInterval) {
 			console.warn(logString1, logString2
@@ -620,7 +620,7 @@
 		}
 	}
 
-	function _doIntervalForRenewingRelatedInfo(thisInstance) {
+	function _doIntervalOfRenewingState(thisInstance) {
 		var shouldCancel = _dispatchAnEvent(thisInstance, 'onIntervalBegin');
 
 		if (!shouldCancel) {
@@ -637,13 +637,13 @@
 
 
 
-	function startIntervalForUpdateLayout() {
-		_startOrClearIntervalForUpdateLayout(this, true);
+	function startIntervalOfUpdateLayout() {
+		_startOrClearIntervalOfUpdateLayout(this, true);
 	}
-	function clearIntervalForUpdateLayout() {
-		_startOrClearIntervalForUpdateLayout(this, false);
+	function clearIntervalOfUpdateLayout() {
+		_startOrClearIntervalOfUpdateLayout(this, false);
 	}
-	function _startOrClearIntervalForUpdateLayout(thisInstance, shouldStart) {
+	function _startOrClearIntervalOfUpdateLayout(thisInstance, shouldStart) {
 		var privateData = privatePropertiesHost[thisInstance.__pToken],
 			logString1 = shouldStart ? 'Starting' : 'STOPPING',
 			logString2 = 'interval for updating layout.',
@@ -659,7 +659,7 @@
 				// , '\n' + logString3, rootEl
 			);
 			privateData[pNameForIndex] = setInterval(
-				privateData.boundMethods.doIntervalForUpdateLayout,
+				privateData.boundFunctions.doIntervalOfUpdateLayout,
 				thisInstance.options.intervalTimeInMSForUpdatingLayout
 			);
 		} else if (!shouldStart && hasActiveInterval) {
@@ -670,7 +670,7 @@
 			privateData[pNameForIndex] = NaN;			
 		}
 	}
-	function _doIntervalForUpdateLayout(thisInstance) {
+	function _doIntervalOfUpdateLayout(thisInstance) {
 		updateLayout.call(thisInstance);
 	}
 
@@ -678,13 +678,13 @@
 
 
 	// renew all state but NOT the global swith, aka the this.state.shouldEnableHanging
-	function renewAllRelatedInfoAndThenUpdate(options) {
-		renewAllRelatedInfo.call(this, options, false);
+	function renewStateAndThenUpdate(options) {
+		renewState.call(this, options, false);
 		updateLayout.call(this);
 	}
 
 	// renew all state but NOT the global swith, aka the this.state.shouldEnableHanging
-	function renewAllRelatedInfo(options, isForcedToRenew) {
+	function renewState(options, isForcedToRenew) {
 		var didntRequestAnUpdateForHangingLowerBoundryUsedBorder = true;
 
 
@@ -697,7 +697,7 @@
 			);
 
 			renewContentBottomDistanceToLowerBoundry.call(this,
-				options.contentBottomDistanceToLowerBoundryInHangingLayouts,
+				options.contentBottomToLowerBoundryInHangingLayouts,
 				isForcedToRenew
 			);
 
@@ -730,7 +730,7 @@
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		requestAnUpdateOfLayout.call(this, newState);
+		requestLayoutUpdate.call(this, newState);
 	}
 
 	function renewContentTopToRootTopInFreeLayout(isForcedToRenew) {
@@ -742,7 +742,7 @@
 
 		newState[pName] = this.elements.chiefContent.offsetTop;
 
-		requestAnUpdateOfLayout.call(this, newState);
+		requestLayoutUpdate.call(this, newState);
 	}
 
 	function renewContentTopToWindowTopInHangingLayouts(newExtraSpace, isForcedToRenew) {
@@ -755,7 +755,7 @@
 			newState.contentTopToWindowTopInHangingLayouts = newExtraSpace;
 		}
 
-		requestAnUpdateOfLayout.call(this, newState);
+		requestLayoutUpdate.call(this, newState);
 	}
 
 	function renewContentBottomDistanceToLowerBoundry(newExtraSpace, isForcedToRenew) {
@@ -765,10 +765,10 @@
 
 		newExtraSpace = parseFloat(newExtraSpace);
 		if (!isNaN(newExtraSpace)) {
-			newState.contentBottomDistanceToLowerBoundryInHangingLayouts = newExtraSpace;
+			newState.contentBottomToLowerBoundryInHangingLayouts = newExtraSpace;
 		}
 
-		requestAnUpdateOfLayout.call(this, newState);
+		requestLayoutUpdate.call(this, newState);
 	}
 
 
@@ -829,7 +829,7 @@
 		newState.contentTopToPageTopInFreeLayout = contentClientRect.top + window.scrollY;
 		// console.log('*** newState: content top to page:', newState.contentTopToPageTopInFreeLayout, '***');
 
-		requestAnUpdateOfLayout.call(thisInstance, newState);
+		requestLayoutUpdate.call(thisInstance, newState);
 	}
 
 	function renewHangingLowerBoundryUsedBorder(shouldUseBottomOfHangingLowerBoundryRef, isForcedToRenew) {
@@ -864,7 +864,7 @@
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		requestAnUpdateOfLayout.call(this, newState);
+		requestLayoutUpdate.call(this, newState);
 	}
 
 	function _evaluateHangingBoundries(thisInstance) {
@@ -898,9 +898,9 @@
 
 
 
-	function requestAnUpdateOfLayout(newStateOrFunctionToGenerateNewStateOrABoolean) {
+	function requestLayoutUpdate(newStateOrFunctionToGenerateNewStateOrABoolean) {
 		var thisInstance = this,
-			statesQueue = privatePropertiesHost[thisInstance.__pToken].queuedStatesForUpdatesOfLayout
+			statesQueue = privatePropertiesHost[thisInstance.__pToken].queuedStatesForUpdating
 		;
 
 
@@ -931,8 +931,8 @@
 		}
 	}
 
-	// function _processAllQueuedStatesForUpdatesOfLayout(thisInstance) {
-	// 	while (privatePropertiesHost[this.__pToken].queuedStatesForUpdatesOfLayout.length > 0) {
+	// function _processAllqueuedStatesForUpdating(thisInstance) {
+	// 	while (privatePropertiesHost[this.__pToken].queuedStatesForUpdating.length > 0) {
 	// 		__processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance);
 	// 	}
 	// 	___updateAllDerivedStatesAccordingToNewState();
@@ -941,7 +941,7 @@
 	function __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance) {
 		var privateData = privatePropertiesHost[thisInstance.__pToken];
 
-		var newState = privateData.queuedStatesForUpdatesOfLayout.shift();
+		var newState = privateData.queuedStatesForUpdating.shift();
 
 		___detectChangesBetweenStates(thisInstance, thisInstance.state, newState);
 
@@ -1056,7 +1056,7 @@
 		var thisInstance = this,
 			privateData = privatePropertiesHost[thisInstance.__pToken],
 			publicState = thisInstance.state,
-			statesQueue = privateData.queuedStatesForUpdatesOfLayout
+			statesQueue = privateData.queuedStatesForUpdating
 			;
 
 
@@ -1075,7 +1075,7 @@
 		// since at present I allow no more than one task,
 		// the two policies mentioned above turn to be the same finally.
 
-		// var newState = _processAllQueuedStatesForUpdatesOfLayout(thisInstance); // policy 1
+		// var newState = _processAllqueuedStatesForUpdating(thisInstance); // policy 1
 		var newState = __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance); // policy 2
 
 
@@ -1117,7 +1117,7 @@
 		var hangingTopOffset = publicState.contentTopToWindowTopInHangingLayouts;
 		var topBoundryToPageTop = window.scrollY + hangingTopOffset;
 		var boundriesDistance = publicState.hangingLowerBoundryToPageTop - publicState.contentTopToPageTopInFreeLayout;
-		var requiredRoomInY = publicState.blockHeight + publicState.contentBottomDistanceToLowerBoundryInHangingLayouts;
+		var requiredRoomInY = publicState.blockHeight + publicState.contentBottomToLowerBoundryInHangingLayouts;
 		var availableRoomInY = privateData.hangingLowerBoundryToWindowTop - hangingTopOffset;
 
 
@@ -1220,11 +1220,11 @@
 				// thus the infinite looping invocation will not occur.
 				
 				// Note that if this function is invoked for switching layout temporarily,
-				// this means the invokation was taken by the renewAllRelatedInfoAndThenUpdate itself
+				// this means the invokation was taken by the renewStateAndThenUpdate itself
 				// thus we should avoid infinite looping.
 
 				// console.debug('Returned to free layout. An opportunity to renew all related info.');
-				renewAllRelatedInfoAndThenUpdate.call(thisInstance);
+				renewStateAndThenUpdate.call(thisInstance);
 			}
 
 			privateData[pNameNextTimeRenewFreeLayout] = false;
