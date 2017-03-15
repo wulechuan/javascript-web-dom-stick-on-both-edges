@@ -52,12 +52,13 @@ article ul > li:last-of-type {
     box-sizing: border-box;
     width: 180px;
     padding: 20px;
-    background-color: #f8f8f8;
     border: 1px solid #ddd;    
 }
 
-.sidebar-block-1 .hanging-block {
+.sidebar .sidebar-block-1 .hanging-block {
     height: 300px;
+    border-color: deeppink;
+    background-color: #fac;
 }
 
 

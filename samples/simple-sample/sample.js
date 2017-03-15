@@ -11,5 +11,10 @@
     // simply for easier access in web browser console for tweaking
     window.slc = sidebarBlock1LayoutControl;
 
-    console.log(window.slc.state);
+    console.log(sidebarBlock1LayoutControl.state);
+
+    setTimeout(function () {
+        sidebarBlock1LayoutControl.destroy('Time is up!');
+        alert('Time is up! the sticky behaviour of the sidebar block had been destroyed.');
+    }, 10*1000);
 })();
