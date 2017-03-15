@@ -87,7 +87,7 @@ const logger = require('@wulechuan/colorful-log').createColorfulLogger(global.co
 const chalk = logger.chalk;
 const logLine = logger.logLines['='];
 const colorfulLog = logger.log;
-const colorfulInfo = logger.info;
+// const colorfulInfo = logger.info;
 const colorfulWarn = logger.warn;
 const warnEMChalk = logger.warnEMChalk;
 const cheersChalk = chalk.bgGreen.black;
