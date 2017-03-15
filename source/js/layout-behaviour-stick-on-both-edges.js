@@ -309,8 +309,7 @@
 		renewState.call(thisInstance, initOptions, true);
 
 		if (typeof initOptions.shouldEnableOnInit === 'boolean') {
-			enableOrDisable.call(
-				thisInstance,
+			enableOrDisable.call(thisInstance,
 				initOptions.shouldEnableOnInit,
 				initOptions.reasonForEnablingOrDisabling || initOptions.reason || 'User desired on initialization.'
 			);
@@ -326,7 +325,7 @@
 		// Third, also update layout whenever user is scrolling or resizing window
 		var boundFunctions = _privateDataOf(thisInstance).boundFunctions;
 		window.addEventListener('scroll', boundFunctions.listenToScrollEvent);
-		// window.addEventListener('resize', boundFunctions.listenToResizeEvent);
+		window.addEventListener('resize', boundFunctions.listenToResizeEvent);
 	}
 
 	function _privateDataOf(thisInstance) {
@@ -485,28 +484,22 @@
 		}
 	}
 
+
+
+
+
+
+	function enable(reasonForEnabling) {
+		enableOrDisable.call(this, true, reasonForEnabling);
+	}
+
+	function disable(reasonForDisabling, shouldDestroyAfterDisabled) {
+		enableOrDisable.call(this, false, reasonForDisabling, shouldDestroyAfterDisabled);
+	}
+
 	function destroy(reason) {
 		disable.call(this, reason, true);
 	}
-
-	function _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance) {
-		var elements = thisInstance.elements,
-			boundFunctions = _privateDataOf(thisInstance).boundFunctions
-		;
-
-		window.removeEventListener('scroll', boundFunctions.listenToScrollEvent);
-		window.removeEventListener('resize', boundFunctions.listenToResizeEvent);
-
-		elements.root.style.height = '';
-		elements.hangingBlock.style.top = '';
-		______soloCssClassTo(thisInstance, null);
-
-		_dispatchAnEvent(thisInstance, 'onDestroyed', true);
-	}
-
-
-
-
 
 	function enableOrDisable(shouldEnable, reason, shouldDestroyAfterDisabled) {
 		if (typeof shouldEnable === 'undefined') return;
@@ -542,14 +535,6 @@
 
 
 		updateLayout.call(this);
-	}
-
-	function enable(reasonForEnabling) {
-		enableOrDisable.call(this, true, reasonForEnabling);
-	}
-
-	function disable(reasonForDisabling, shouldDestroyAfterDisabled) {
-		enableOrDisable.call(this, false, reasonForDisabling, shouldDestroyAfterDisabled);
 	}
 
 	function _onEnablingOrDisabling(thisInstance, willEnable, shouldDestroyAfterDisabled) {
@@ -600,6 +585,20 @@
 		}
 	}
 
+	function _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance) {
+		var elements = thisInstance.elements,
+			boundFunctions = _privateDataOf(thisInstance).boundFunctions
+		;
+
+		window.removeEventListener('scroll', boundFunctions.listenToScrollEvent);
+		window.removeEventListener('resize', boundFunctions.listenToResizeEvent);
+
+		elements.root.style.height = '';
+		elements.hangingBlock.style.top = '';
+		______soloCssClassTo(thisInstance, null);
+
+		_dispatchAnEvent(thisInstance, 'onDestroyed', true);
+	}
 
 
 
