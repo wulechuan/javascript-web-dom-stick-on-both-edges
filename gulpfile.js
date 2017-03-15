@@ -7,9 +7,12 @@ const folderOfCssFiles = 'css';
 const folderOfJsFiles = 'js';
 
 
-const shouldStripConsoleLoggingsFromJsFiles = true;
-const shouldGenerateMapFilesForJs = false;
-const shouldGenerateMapFilesForCss = false;
+let shouldMinifyJsFile = false;
+let shouldStripConsoleLoggingsFromJsFiles = true;
+let shouldGenerateMapFilesForJs = true;
+let shouldGenerateMapFilesForCss = false;
+
+
 
 
 
@@ -73,6 +76,10 @@ const colorfulInfo = logger.info;
 
 
 
+shouldStripConsoleLoggingsFromJsFiles = shouldStripConsoleLoggingsFromJsFiles && shouldMinifyJsFile;
+shouldGenerateMapFilesForJs = shouldGenerateMapFilesForJs && shouldMinifyJsFile;
+
+
 // build up fullpaths and globs
 const pathForCssSourceFiles = getJoinedPathFrom(pathForSourceFiles, folderOfCssFiles);
 const pathForCssBuiltFiles = getJoinedPathFrom(pathForBuiltFiles, folderOfCssFiles);
@@ -125,6 +132,7 @@ colorfulInfo(
         }
 
         tasksToPump.push(minifyCss());
+        tasksToPump.push(rename({suffix: '.min'}));
 
         if (shouldGenerateMapFilesForCss) {
             tasksToPump.push(sourcemaps.write('.'));
@@ -166,7 +174,9 @@ colorfulInfo(
             tasksToPump.push(removeLogging(settingsForRemovingLoggingForJsFiles));
         }
 
-        tasksToPump.push(uglifyJs());
+        if (shouldGenerateMapFilesForJs) {
+            tasksToPump.push(uglifyJs());
+        }
         tasksToPump.push(rename({suffix: '.min'}));
 
         if (shouldGenerateMapFilesForJs) {

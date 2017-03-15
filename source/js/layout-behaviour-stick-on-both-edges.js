@@ -2,14 +2,20 @@
 
 /*** Class: LayoutBehaviour:StickOnBothEdges
  */
-module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
-	return factory(
+(function (factory) { var nameOfClass = 'StickOnBothEdges';
+	var StickOnBothEdges = factory(
 		nameOfClass,
 		generateAUniqueTokenUnder,
 		mergeBIntoA,
         domAIsChildOfB,
-		window.jQuery.throttle || window.Cowboy.throttle
+		(window.jQuery && window.jQuery.throttle) || (window.Cowboy && window.Cowboy.throttle)
 	);
+
+	if (window.module && window.module.exports) {
+		module.exports = StickOnBothEdges
+	} else {
+		window[nameOfClass] = StickOnBothEdges;
+	}
 
 
 
@@ -169,13 +175,13 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 			throw new Error('Invalid root element.');
 		}
 
-		if (!(constructionOptions.chiefContentElement instanceof Node)) {
-			throw new Error('Invalid chiefContent element.');
+		if (!(constructionOptions.hangingBlockElement instanceof Node)) {
+			throw new Error('Invalid hangingBlock element.');
 		}
 
 		thisInstance.elements = {
-			root: constructionOptions.rootElement, // as the wrapper and the placeholder for the chiefContent element
-			chiefContent: constructionOptions.chiefContentElement,
+			root: constructionOptions.rootElement, // as the wrapper and the placeholder for the hangingBlock element
+			hangingBlock: constructionOptions.hangingBlockElement,
 			lowerBoundaryRef: null
 		};
 
@@ -302,9 +308,10 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		// Store initial states
 		renewState.call(thisInstance, initOptions, true);
 
-		if (typeof initOptions.shouldEnable === 'boolean') {
+		if (typeof initOptions.shouldEnableOnInit === 'boolean') {
 			enableOrDisable.call(
-				initOptions.shouldEnable,
+				thisInstance,
+				initOptions.shouldEnableOnInit,
 				initOptions.reasonForEnablingOrDisabling || initOptions.reason || 'User desired on initialization.'
 			);
 		} else if (thisInstance.options.shouldEnableOnInit) {
@@ -491,7 +498,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		window.removeEventListener('resize', boundFunctions.listenToResizeEvent);
 
 		elements.root.style.height = '';
-		elements.chiefContent.style.top = '';
+		elements.hangingBlock.style.top = '';
 		______soloCssClassTo(thisInstance, null);
 
 		_dispatchAnEvent(thisInstance, 'onDestroyed', true);
@@ -744,7 +751,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 	function renewContentHeight(isForcedToRenew) {
 		var newState = {
-			blockHeight: this.elements.chiefContent.offsetHeight
+			blockHeight: this.elements.hangingBlock.offsetHeight
 		};
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
@@ -759,7 +766,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		newState[pName] = this.elements.chiefContent.offsetTop;
+		newState[pName] = this.elements.hangingBlock.offsetTop;
 
 		requestLayoutUpdate.call(this, newState);
 	}
@@ -869,11 +876,11 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 	}
 
 	function _doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenew) {
-		var contentClientRect = thisInstance.elements.chiefContent.getBoundingClientRect();
+		var contentClientRect = thisInstance.elements.hangingBlock.getBoundingClientRect();
 
 		if (contentClientRect.width === 0 && contentClientRect.height === 0) {
 			console.warn(
-				'\n\t Cannot evaluate chiefContentElement\'s "boundingClientRect"!',
+				'\n\t Cannot evaluate hangingBlockElement\'s "boundingClientRect"!',
 				'\n\t The chief content elment might not be visible at the moment.'
 			);
 			return;
@@ -1356,7 +1363,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 		______soloLayoutStateTo(thisInstance, pNameOfLayoutMark);
 		______soloCssClassTo(thisInstance, options.pNameOfCssClass);
 
-		elements.chiefContent.style.top = options.contentElTop;
+		elements.hangingBlock.style.top = options.contentElTop;
 		elements.root.style.height = options.rootElHeight;
 
 		return false;
@@ -1370,7 +1377,7 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 	}
 
 	function ______soloCssClassTo(thisInstance, propertyKeyOfCssClassToApply) {
-		var chiefContentClassList = thisInstance.elements.chiefContent.classList,
+		var hangingBlockClassList = thisInstance.elements.hangingBlock.classList,
 			cssClassNameOptions = thisInstance.options.cssClassName
 		;
 
@@ -1378,10 +1385,10 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 			var cssClassName = cssClassNameOptions[key];
 			if (key === propertyKeyOfCssClassToApply) {
 				// console.debug('-----<<<< add css:', cssClassName);
-				cssClassName && chiefContentClassList.add   (cssClassName);
+				cssClassName && hangingBlockClassList.add   (cssClassName);
 			} else {
 				// console.debug('-----<<<< remove css:', cssClassName);
-				cssClassName && chiefContentClassList.remove(cssClassName);
+				cssClassName && hangingBlockClassList.remove(cssClassName);
 			}
 		}
 	}

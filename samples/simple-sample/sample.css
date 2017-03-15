@@ -1,0 +1,70 @@
+.page-body {
+    margin: auto;
+    width: 840px;
+}
+
+.page-body > section {
+    display: block;
+    position: relative;
+    white-space: nowrap;
+    overflow: hidden;
+    padding: 20px;
+    margin-bottom: 40px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.page-body > section > * {
+    display: inline-block;
+    vertical-align: top;
+    box-sizing: border-box;
+    white-space: normal;
+    overflow: initial;
+}
+
+article ul {
+    padding: 0;
+    margin: 0;
+}
+
+article ul > li {
+    display: block;
+    list-style: none;
+    margin-bottom: 20px;
+    padding: 20px;
+    border: 1px solid #ccc;
+    background-color: white;
+}
+
+article ul > li:last-of-type {
+    margin-bottom: 0;
+}
+
+
+.chief-content {
+    width: 600px;
+    margin-right: 20px;
+    padding: 20px;
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;
+}
+
+.sidebar .sidebar-block .hanging-block {
+    box-sizing: border-box;
+    width: 180px;
+    padding: 20px;
+    background-color: #f8f8f8;
+    border: 1px solid #ddd;    
+}
+
+.sidebar-block-1 .hanging-block {
+    height: 300px;
+}
+
+
+
+.js-stick-on-both-edges-layout-temporarily-free,
+.js-stick-on-both-edges-layout-hang-to-window-top,
+.js-stick-on-both-edges-layout-pin-to-lower-boundry {
+	box-shadow: 0 5px 20px rgba(0, 0, 0, 0.19);
+	transition: box-shadow 0.45s ease-out;
+}
