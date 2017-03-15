@@ -3,8 +3,13 @@
         rootElement: document.querySelector('.hanging-block-wrapper'),
         hangingBlockElement: document.querySelector('.hanging-block'),
         lowerBoundaryRefElement: document.querySelector('#first-fold > .chief-content'),
+        contentBottomToLowerBoundaryInHangingLayouts: 0,
         shouldEnableOnInit: true
     });
 
-    console.log(sidebarBlock1LayoutControl.state);
+
+    // simply for easier access in web browser console for tweaking
+    window.slc = sidebarBlock1LayoutControl;
+
+    console.log(window.slc.state);
 })();

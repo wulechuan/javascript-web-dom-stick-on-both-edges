@@ -206,7 +206,7 @@
 
 				// helpers
 				somethingChanged: false,
-				hangingLowerBoundaryToWindowTop: NaN, // Saving this constantly changed value simply for avoiding evalutation of it outside __evaluateHangingBoundries().
+				hangingLowerBoundaryToWindowTop: NaN,
 				shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
 
 
@@ -807,7 +807,6 @@
             }
 
 			requestLayoutUpdate.call(this, newState);
-
         }
 
 		return edgeUsageHasBeenDecidedHereInsideThisFunction;
@@ -1211,7 +1210,7 @@
 
 		var publicState = thisInstance.state,
 			pName = 'hangingLowerBoundaryToPageTop',
-            refElement = thisInstance.elements[pName],
+            refElement = publicState.lowerBoundaryRefElement,
             refElementClientRect,
 			refNewYToWindowTop = NaN,
 			refNewYToPageTop = NaN
@@ -1226,6 +1225,7 @@
                 refNewYToPageTop = refNewYToWindowTop + window.scrollY;
             }
         } else {
+			console.debug('Reference element for deciding hanging lower boundary is not provided.');
             // do nothing, keeping NaN values
         }
 
@@ -1233,11 +1233,6 @@
 		// values below might be NaN, as long as the refElement is not available any more or is hidden
 		_privateDataOf(thisInstance).state.hangingLowerBoundaryToWindowTop = refNewYToWindowTop;
 		publicState[pName] = refNewYToPageTop;
-
-
-		var newState = {};
-		newState[pName] = refNewYToPageTop;
-		return newState;
 	}
 
 	function ____switchLayoutToFree(thisInstance, isForcedToUpdate, isForcedByAForcedRenew) {
