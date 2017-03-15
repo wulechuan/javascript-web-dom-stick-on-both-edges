@@ -409,29 +409,27 @@ module.exports = (function (factory) { var nameOfClass = 'StickOnBothEdges';
 	function config(options) {
 		var thisInstance = this,
 			moduleOptions = thisInstance.options,
-			elements = thisInstance.elements,
-			pName1,
-			pName2,
+			pName,
 			pValue
 			;
 
 
 
-		pName1 = 'intervalTimeForRenewingState';
-		if (options.hasOwnProperty(pName1)) {
-			pValue = parseInt(options[pName1]);
+		pName = 'intervalTimeForRenewingState';
+		if (options.hasOwnProperty(pName)) {
+			pValue = parseInt(options[pName]);
 			if (!isNaN(pValue) && pValue > 20) { // acceptable threshold
-				moduleOptions[pName1] = pValue;
+				moduleOptions[pName] = pValue;
 			}
 		}
 
 
 
-		pName1 = 'intervalTimeForUpdatingLayout';
-		if (options.hasOwnProperty(pName1)) {
-			pValue = parseInt(options[pName1]);
+		pName = 'intervalTimeForUpdatingLayout';
+		if (options.hasOwnProperty(pName)) {
+			pValue = parseInt(options[pName]);
 			if (!isNaN(pValue) && pValue > 20) { // acceptable threshold
-				moduleOptions[pName1] = pValue;
+				moduleOptions[pName] = pValue;
 			}
 		}
 
