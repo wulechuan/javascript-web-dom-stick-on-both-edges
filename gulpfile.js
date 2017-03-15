@@ -1,4 +1,5 @@
-const projectCaption = '@wulechuan/dom-stick-on-both-edges'; // simply for beautiful loggings
+// simply for beautiful loggings
+const projectCaption = '@wulechuan/dom-stick-on-both-edges';
 
 
 const pathForSourceFiles = 'source';
@@ -7,9 +8,11 @@ const folderOfCssFiles = 'css';
 const folderOfJsFiles = 'js';
 
 
-const shouldStripConsoleLoggingsFromJsFiles = true;
-const shouldGenerateMapFilesForJs = false;
-const shouldGenerateMapFilesForCss = false;
+let shouldMinifyJsFiles = false;
+let shouldMinifyCssFiles = true;
+let shouldStripConsoleLoggingsFromJsFiles = true;
+let shouldGenerateMapFilesForJs = true;
+let shouldGenerateMapFilesForCss = true;
 
 
 
@@ -27,7 +30,24 @@ const settingsForRemovingLoggingForJsFiles = {
 };
 
 
+const processArguments = require('minimist')(process.argv.slice(2));
+const isToBuildForRelease =
+    processArguments.release
+    || processArguments.production
+    || processArguments.ship
+    || processArguments.final
+    ;
 
+const isToDevelopWithWatching = !isToBuildForRelease;
+
+// production environment configurations
+if (isToBuildForRelease) {
+    shouldMinifyCssFiles = true;
+    shouldMinifyJsFiles = true;
+    shouldStripConsoleLoggingsFromJsFiles = true;
+    shouldGenerateMapFilesForJs = false;
+    shouldGenerateMapFilesForCss = false;
+}
 
 
 
@@ -67,10 +87,17 @@ const logger = require('@wulechuan/colorful-log').createColorfulLogger(global.co
 const chalk = logger.chalk;
 const logLine = logger.logLines['='];
 const colorfulLog = logger.log;
-const colorfulInfo = logger.info;
+// const colorfulInfo = logger.info;
+const colorfulWarn = logger.warn;
+const warnEMChalk = logger.warnEMChalk;
+const cheersChalk = chalk.bgGreen.black;
 
 
 
+
+shouldStripConsoleLoggingsFromJsFiles = shouldStripConsoleLoggingsFromJsFiles && shouldMinifyJsFiles;
+shouldGenerateMapFilesForJs = shouldGenerateMapFilesForJs && shouldMinifyJsFiles;
+shouldGenerateMapFilesForCss = shouldGenerateMapFilesForCss && shouldMinifyCssFiles;
 
 
 // build up fullpaths and globs
@@ -92,6 +119,7 @@ const globsJsSourceFiles = [
 const globsToWatch = []
     .concat(globsCssSourceFiles)
     .concat(globsJsSourceFiles)
+    ;
 
 
 
@@ -101,11 +129,20 @@ const globsToWatch = []
 
 
 
-colorfulInfo(
-    logLine,
-    'Preparing globs and tasks...',
-    logLine
-);
+
+
+if (isToDevelopWithWatching) {
+    colorfulWarn(
+        warnEMChalk('Running in DEVELOPMENT Mode! Have a Nice Day!')
+    );
+}
+
+if (isToBuildForRelease) {
+    colorfulLog(
+        cheersChalk('Building app for releasing...! So exciting!')
+    );
+}
+
 
 
 (function setupAllCSSTasks() {
@@ -124,7 +161,11 @@ colorfulInfo(
             tasksToPump.push(sourcemaps.init());
         }
 
-        tasksToPump.push(minifyCss());
+        if (shouldMinifyCssFiles) {
+            tasksToPump.push(minifyCss());
+        }
+
+        tasksToPump.push(rename({ suffix: '.min' }));
 
         if (shouldGenerateMapFilesForCss) {
             tasksToPump.push(sourcemaps.write('.'));
@@ -166,8 +207,10 @@ colorfulInfo(
             tasksToPump.push(removeLogging(settingsForRemovingLoggingForJsFiles));
         }
 
-        tasksToPump.push(uglifyJs());
-        tasksToPump.push(rename({suffix: '.min'}));
+        if (shouldMinifyJsFiles) {
+            tasksToPump.push(uglifyJs());
+        }
+        tasksToPump.push(rename({ suffix: '.min' }));
 
         if (shouldGenerateMapFilesForJs) {
             tasksToPump.push(sourcemaps.write('.'));
@@ -218,17 +261,17 @@ gulp.task('app: build', [
 
         let actionName = '';
         switch (event.type) {
-            case 'added': actionName = 'added';
-                break;
-            case 'changed': actionName = 'changed';
-                break;
-            case 'renamed': actionName = 'renamed';
-                break;
-            case 'unlink':
-            case 'deleted': actionName = 'deleted';
-                break;
-            default: actionName = event.type;
-                break;
+        case 'added': actionName = 'added';
+            break;
+        case 'changed': actionName = 'changed';
+            break;
+        case 'renamed': actionName = 'renamed';
+            break;
+        case 'unlink':
+        case 'deleted': actionName = 'deleted';
+            break;
+        default: actionName = event.type;
+            break;
         }
 
         colorfulLog(chalk.cyan(
@@ -252,14 +295,32 @@ gulp.task('app: build', [
 
 
 (function setupTopLevelTasks() {
-    gulp.task('default', [
-        'app: build',
-        'app: watch all source files'
-    ]);
+    const topLevelTasksToRun = [
+        'app: build'
+    ];
+
+    if (isToDevelopWithWatching) {
+        topLevelTasksToRun.push(
+            'app: watch all source files'
+        );
+    }
+
+    gulp.task('default', topLevelTasksToRun, (onThisTaskDone) => {
+        if (isToBuildForRelease) {
+            setTimeout(function () {
+                colorfulLog(
+                    cheersChalk('App is built sucessfully! Congradulations!')
+                );
+            }, 0);
+        }
+
+        onThisTaskDone();
+    });
 })();
 
-colorfulInfo(
-    logLine,
-    'Globs and tasks are prepared.',
-    logLine
-);
+
+// colorfulInfo(
+//     logLine,
+//     'Globs and tasks are prepared.',
+//     logLine
+// );

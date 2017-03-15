@@ -2,1327 +2,1380 @@
 
 /*** Class: LayoutBehaviour:StickOnBothEdges
  */
-(function (factory) { var nameOfClass = 'StickOnBothEdges';
-	return factory(
-		nameOfClass,
-		generateAUniqueTokenUnder,
-		window.jQuery.extend,
-		window.jQuery.throttle
-	);
+(function (factory) {
+    var nameOfClass = 'StickOnBothEdges';
+    var StickOnBothEdges = factory(
+        nameOfClass,
+        generateAUniqueTokenUnder,
+        mergeBIntoA,
+        domAIsChildOfB,
+        (window.jQuery && window.jQuery.throttle) || (window.Cowboy && window.Cowboy.throttle)
+    );
 
-	function generateAUniqueTokenUnder(tokenHost, prefix) {
-		function __doGenerate() {
-			return prefix + Date.now() + '-' + ((Math.random() * 1000000) + '').slice(0, 6);
-		}
+    if (window.module && window.module.exports) {
+        module.exports = StickOnBothEdges;
+    } else {
+        window[nameOfClass] = StickOnBothEdges;
+    }
 
-		prefix = typeof prefix === 'string' ? prefix : '';
+
+
+    function generateAUniqueTokenUnder(tokenHost, prefix) {
+        function __doGenerate() {
+            return prefix + Date.now() + '-' + ((Math.random() * 1000000) + '').slice(0, 6);
+        }
+
+        prefix = typeof prefix === 'string' ? prefix : '';
         prefix = prefix.replace(/\-+$/, '') + '-';
-		var token = __doGenerate();
-		while (tokenHost[token]) {
-			token = __doGenerate();
-		}
-
-		return token;
-	}
-})(function factory(nameOfClass, generateAUniqueTokenUnder, jQueryExtendsAnObject, jQueryThrottle) {
-	'use strict';
-
-	// private and also static properties (shared across instances)
-	var logNameOfClass = '{'+nameOfClass+'} ==>',
-		indentAlignsToLogNameOfClass = logNameOfClass.replace(/\S/g, ' ')
-	;
-
-
-	var rawConsole = window.console;
-	var console = {};
-
-	['log', 'info', 'warn', 'debug', 'trace', 'error'].forEach(function (loggingLevel) {
-		var rawMethod = rawConsole[loggingLevel];
-		if (typeof rawMethod === 'function') {
-			console[loggingLevel] = rawMethod.bind(rawConsole, logNameOfClass);
-		}
-	});
-
-	// This is an object shared by for all instances
-	// whoever are constructed via the class/function defined in this closure.
-	// Each and every instance has its own unique __pToken to access its own private data,
-	// without knowing how to access that for other instances.
-	var privatePropertiesHost = {};
+        var token = __doGenerate();
+        while (tokenHost[token]) {
+            token = __doGenerate();
+        }
+
+        return token;
+    }
+
+    function mergeBIntoA(a, b) {
+        if (!a || typeof a !== 'object') return null;
+        if (!b || typeof b !== 'object') return a;
+
+        for (var key in b) {
+            var vB = b[key];
+            if (vB === undefined) continue; // null value is acceptable
+            if (Array.isArray(vB)) {
+                if (Array.isArray(a[key])) {
+                    Array.prototype.push.apply(a[key], vB); // keep reference to original a[key]
+                } else {
+                    a[key] = vB;
+                }
+            } else {
+                a[key] = vB;
+            }
+        }
+
+        return a;
+    }
+
+    function domAIsChildOfB(a, b) {
+        if (!(a instanceof Node && b instanceof Node)) return false;
+
+        var isChild = false;
+        while (a !== b && a !== document.documentElement) {
+            a = a.parentNode;
+            if (a === b) {
+                isChild = true;
+            }
+        }
+
+        return isChild;
+    }
+})(function factory(nameOfClass, generateAUniqueTokenUnder, mergeBIntoA, domAIsChildOfB, jQueryThrottle) {
+    'use strict';
+
+    // private and also static properties (shared across instances)
+    var logNameOfClass = '{' + nameOfClass + '} ==>',
+        indentAlignsToLogNameOfClass = logNameOfClass.replace(/\S/g, ' ')
+    ;
+
+
+    var rawConsole = window.console;
+    var console = {};
+
+    ['log', 'info', 'warn', 'debug', 'trace', 'error'].forEach(function (loggingLevel) {
+        var rawMethod = rawConsole[loggingLevel];
+        if (typeof rawMethod === 'function') {
+            console[loggingLevel] = rawMethod.bind(rawConsole, logNameOfClass);
+        }
+    });
+
+    // This is an object shared by for all instances
+    // whoever are constructed via the class/function defined in this closure.
+    // Each and every instance has its own unique __pToken to access its own private data,
+    // without knowing how to access that for other instances.
+    var privatePropertiesHost = {};
+
+    // Now, define the class/function and return it by factory function
+    return function StickOnBothEdges(constructionOptions) {
+        'use strict';
+
+        // Use "thisInstance" intead of "this" is for better compression ratio of js files.
+        // Should use this trig whenever the appearances of "this" is more than 5 times.
+        var thisInstance = this;
+        // console.log(thisInstance);
+
+        // Public this object just for callback functions, which often defined somewhere outside this file, to utilize.
+        thisInstance.console = console;
 
-	// Now, define the class/function and return it by factory function
-	return function StickOnBothEdges(constructionOptions) {
-		'use strict';
+        // This is the public options object of an instance.
+        thisInstance.options = {
+            // The deeply nested content of the block might NOT be ready
+            // at the time this controller is constructed.
+            // This could be especially true when the block is an Ad.
+            // So we might choose not to enable the behaviour of this controller instance.
+            // Instead, we may choose to invoke:
+            //	<instanceObject>.enable('My ad is ready')
+            // explicitly, to enable it at proper anytime.
+            shouldEnableOnInit: false,
 
-		// Use "thisInstance" intead of "this" is for better compression ratio of js files.
-		// Should use this trig whenever the appearances of "this" is more than 5 times.
-		var thisInstance = this;
-		// console.log(thisInstance);
+            // if there are some other coupled blocks might effect the top of this block
+            shouldAlwaysRenewFreeLayoutInfo: true, // everytime it enters the free layout mode
 
-		// Public this object just for callback functions, which often defined somewhere outside this file, to utilize.
-		thisInstance.console = console;
+            cssClassName: {
+                layoutFreeTemporary: 'js-stick-on-both-edges-layout-temporarily-free',
+                layoutFree: 'js-stick-on-both-edges-layout-free',
+                layoutPinToWindowTop: 'js-stick-on-both-edges-layout-hang-to-window-top',
+                layoutPinToParentBottom: 'js-stick-on-both-edges-layout-pin-to-lower-boundary',
+            },
 
-		// This is the public options object of an instance.
-		thisInstance.options = {
-			// The deeply nested content of the block might NOT be ready
-			// at the time this controller is constructed.
-			// This could be especially true when the block is an Ad.
-			// So we might choose not to enable the behaviour of this controller instance.
-			// Instead, we may choose to invoke:
-			//	<instanceObject>.enableHangingBehaviour('My ad is ready')
-			// explicitly, to enable it at proper anytime.
-			shouldEnableBahviourAtBeginning: false,
+            intervalTimeForRenewingState: 500,
+            intervalTimeForUpdatingLayout: 40,
+            throttleTimeForScrollAndResizeListeners: 16
+        };
 
-			// if there are some other coupled blocks might effect the top of this block
-			shouldAlwaysRenewFreeLayoutInfo: true, // everytime it enters the free layout mode
 
-			cssClassName: {
-				layoutFreeTemporary: 'js-stick-on-both-edges-layout-temporary-state',
-				layoutFree: 'js-stick-on-both-edges-layout-free',
-				layoutPinToWindowTop: 'js-stick-on-both-edges-layout-hang-to-window-top',
-				layoutPinToParentBottom: 'js-stick-on-both-edges-layout-pin-to-lower-boundry',
-			},
-			intervalTimeInMSForRenewingRelativInfo: 500,
-			intervalTimeInMSForUpdatingLayout: 40,
-			delayTimeInMSForScrollAndResizeLinstenrThrottle: 16
-		};
+        // This is the public state object of an instance.
+        // everything inside this object are constantly be checked and compared with that of new states,
+        // Do NOT comment out any property that will be used later,
+        // because we are using Object.keys() to determine what to check.
+        thisInstance.state = {
+            shouldEnable: false, // the global switch
 
 
-		// This is the public state object of an instance.
-		// everything inside this object are constantly be checked and compared with that of new states,
-		// Do NOT comment out any property that will be used later,
-		// because we are using Object.keys() to determine what to check.
-		thisInstance.state = {
-			shouldEnableHanging: false, // the global swith
+            // important measurements and involved switches
+            blockHeight: NaN,
+            contentTopToPageTopInFreeLayout: NaN,
+            contentTopToRootTopInFreeLayout: 0,
+            contentTopToWindowTopInHangingLayouts: 0,
+            contentBottomToLowerBoundaryInHangingLayouts: 15,
 
+            lowerBoundaryRefElement: null, // exactly the same as this.elements.lowerBoundaryRef
+            shouldUseBottomEdgeOfLowerBoundaryRefElement: true,
+            hangingLowerBoundaryToPageTop: NaN
 
-			// important measurements and involved switches
-			blockHeight: NaN,
-			contentTopToPageTopInFreeLayout: NaN,
-			contentTopToRootTopInFreeLayout: 0,
-			contentTopToWindowTopInHangingLayouts: 0,
-			contentBottomDistanceToLowerBoundryInHangingLayouts: 15,
 
-			shouldUseBottomOfHangingLowerBoundryRef: false,
-			hangingLowerBoundryToPageTop: NaN
 
+            // We might lose the margins caused by inner content whenver the content is pinned,
+            // no matter it's pinned above or below.
+            // So these values are something we need to remember and make compensation for.
+            // But situation could be complicated.
+            // The root block might has its own margins, as well as the block below has ITS own margins.
+            // If a margin value of the inner content is greater than involved margin values from the root and the block below
+            // then a compensation is needed, otherwise not.
+            // I actually deprecated this value for simplify things.
+            // innerContentKnownMarginTop: 0, // also used for calculating required room in y
+            // innerContentKnownMarginBottom: 0 // also used for calculating required room in y
+        };
 
 
-				// We might lose the margins caused by inner content whenver the content is pinned,
-				// no matter it's pinned above or below.
-				// So these values are something we need to remember and make compensation for.
-				// But situation could be complicated.
-				// The root block might has its own margins, as well as the block below has ITS own margins.
-				// If a margin value of the inner content is greater than involved margin values from the root and the block below
-				// then a compensation is needed, otherwise not.
-				// I actually deprecated this value for simplify things.
-			// innerContentKnownMarginTop: 0, // also used for calculating required room in y
-			// innerContentKnownMarginBottom: 0 // also used for calculating required room in y
-		};
 
 
 
 
+        constructionOptions = constructionOptions || {};
 
+        if (!(constructionOptions.rootElement instanceof Node)) {
+            throw new Error('Invalid root element.');
+        }
 
-		constructionOptions = constructionOptions || {};
+        if (!(constructionOptions.hangingBlockElement instanceof Node)) {
+            throw new Error('Invalid hangingBlock element.');
+        }
 
-		if (!(constructionOptions.parentPositionRefEl instanceof Node)) {
-			throw new Error('Invalid parentPositionRef element.');
-		}
+        thisInstance.elements = {
+            root: constructionOptions.rootElement, // as the wrapper and the placeholder for the hangingBlock element
+            hangingBlock: constructionOptions.hangingBlockElement,
+            lowerBoundaryRef: null
+        };
 
-		if (!(constructionOptions.rootEl instanceof Node)) {
-			throw new Error('Invalid root element.');
-		}
 
-		if (!(constructionOptions.chiefContentEl instanceof Node)) {
-			throw new Error('Invalid chiefContent element.');
-		}
 
-		thisInstance.elements = {
-			root: constructionOptions.rootEl, // as the wrapper and the placeholder for the chiefContent element
-			chiefContent: constructionOptions.chiefContentEl,
-			parentPositionRef: constructionOptions.parentPositionRefEl,
-			hangingLowerBoundryRef: null
-		};
 
 
+        var privateData = {
+            state: {
+                // layout status marks
+                layouts: {
+                    isFreeLayout: true,
+                    isPinnedToWindowTop: false,
+                    isPinnerToParentBottom: false,
+                },
 
 
+                // the global switch
+                isEnabled: false,
 
-		var privateData = {
-			isEnabled: false,
 
+                // helpers
+                somethingChanged: false,
+                hangingLowerBoundaryToWindowTop: NaN,
+                shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
 
-			// layout status marks
-			isInFreeLayout: true,
-			isPinnedToWindowTop: false,
-			isPinnerToParentBottom: false,
 
+                // misc
+                intervalIDForRenewingState: NaN,
+                intervalIDForUpdatingLayout: NaN
+            },
 
-			// functions
-			events: {},
-			boundMethods: {},
 
+            // functions
+            events: {},
+            boundFunctions: {},
 
-			// the queued tasks (states actually), btw, at present no more than one task is allowed
-			queuedStatesForUpdatesOfLayout: [],
 
+            // the queued tasks (states actually), btw, at present no more than one task is allowed
+            updatingStatesQueue: [],
+        };
 
-			// task helpers
-			somethingChanged: false,
-			hangingLowerBoundryToWindowTop: NaN, // save this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
-			shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
+        thisInstance.__pToken = generateAUniqueTokenUnder(privatePropertiesHost, nameOfClass);
+        privatePropertiesHost[thisInstance.__pToken] = privateData;
 
 
-			// misc
-			intervalIDForRenewingRelatedInfo: NaN,
-			intervalIDForUpdatingLayout: NaN
-		};
 
-		thisInstance.__pToken = generateAUniqueTokenUnder(privatePropertiesHost, nameOfClass);
-		privatePropertiesHost[thisInstance.__pToken] = privateData;
 
+        // events
+        // they are private, so must be updated via this.config method
+        // privateData.events.onEnabling;
+        // privateData.events.onEnabled;
 
+        // privateData.events.onDisabling;
+        // privateData.events.onDisabled;
 
+        // privateData.events.onDestroying;
+        // privateData.events.onDestroyed;
 
-		// events
-		// they are private, so must be updated via this.config method
-		// privateData.events.onEnabling;
-		// privateData.events.onEnabled;
+        // privateData.events.onUpdatingLayout; // not implemented yet
+        // privateData.events.onUpdatedLayout; // not implemented yet
 
-		// privateData.events.onDisabling;
-		// privateData.events.onDisabled;
+        // privateData.events.onReturningToFreeLayout;
+        // privateData.events.onReturnedToFreeLayout;
 
-		// privateData.events.onDestroying;
-		// privateData.events.onDestroyed;
+        // privateData.events.onIntervalBegin;
+        // privateData.events.onIntervalEnd;
 
-		// privateData.events.onUpdatingLayout; // not implemented yet
-		// privateData.events.onUpdatedLayout; // not implemented yet
 
-		// privateData.events.onReturningToFreeLayout;
-		// privateData.events.onReturnedToFreeLayout;
 
-		// privateData.events.onIntervalBegin;
-		// privateData.events.onIntervalEnd;
+        // public methods
+        thisInstance.config = config;
 
+        thisInstance.isEnabled = isEnabled;
+        thisInstance.currentLayout = currentLayout;
+        thisInstance.currentLayoutIs = currentLayoutIs;
 
+        thisInstance.enableOrDisable = enableOrDisable;
+        thisInstance.enable = enable;
+        thisInstance.disable = disable;
 
-		// public methods
-		thisInstance.config = config;
+        thisInstance.destroy = destroy;
 
-		thisInstance.isEnabled = isEnabled;
-		thisInstance.currentLayout = currentLayout;
-		thisInstance.currentLayoutIs = currentLayoutIs;
+        thisInstance.renewState = renewState;
+        thisInstance.renewStateAndThenUpdate = renewStateAndThenUpdate;
+        // thisInstance.setContentTopToWindowTopInHangingLayouts = setContentTopToWindowTopInHangingLayouts;
+        // thisInstance.setContentBottomToLowerBoundary = setContentBottomToLowerBoundary;
+        // thisInstance.setLowerBoundaryRefElement = setLowerBoundaryRefElement;
+        // thisInstance.setUsedEdgeOfLowerBoundaryRefElement = setUsedEdgeOfLowerBoundaryRefElement;
 
-		thisInstance.enableOrDisableHangingBehaviour = enableOrDisableHangingBehaviour;
-		thisInstance.enableHangingBehaviour = enableHangingBehaviour;
-		thisInstance.disableHangingBehaviour = disableHangingBehaviour;
 
-		thisInstance.destroy = destroy;
+        // a very traditional way to safely update related info
+        thisInstance.startIntervalOfRenewingState = startIntervalOfRenewingState;
+        thisInstance.clearIntervalOfRenewingState = clearIntervalOfRenewingState;
+        thisInstance.startIntervalOfLayoutUpdate = startIntervalOfLayoutUpdate;
+        thisInstance.clearIntervalOfLayoutUpdate = clearIntervalOfLayoutUpdate;
 
-		thisInstance.renewAllRelatedInfoAndThenUpdate = renewAllRelatedInfoAndThenUpdate;
-		thisInstance.renewAllRelatedInfo = renewAllRelatedInfo;
-		thisInstance.renewContentTopToPageTopInFreeLayout = renewContentTopToPageTopInFreeLayout;
-		thisInstance.renewContentHeight = renewContentHeight;
-		thisInstance.renewContentTopToRootTopInFreeLayout = renewContentTopToRootTopInFreeLayout;
-		thisInstance.renewContentTopToWindowTopInHangingLayouts = renewContentTopToWindowTopInHangingLayouts;
-		thisInstance.renewHangingLowerBoundryValue = renewHangingLowerBoundryValue;
-		thisInstance.renewHangingLowerBoundryUsedBorder = renewHangingLowerBoundryUsedBorder;
+        thisInstance.requestLayoutUpdate = requestLayoutUpdate;
+        thisInstance.updateLayout = updateLayout;
 
 
-		// a very traditional way to safely update related info
-		thisInstance.startIntervalForRenewingRelatedInfo = startIntervalForRenewingRelatedInfo;
-		thisInstance.clearIntervalForRenewingRelatedInfo = clearIntervalForRenewingRelatedInfo;
-		thisInstance.startIntervalForUpdateLayout = startIntervalForUpdateLayout;
-		thisInstance.clearIntervalForUpdateLayout = clearIntervalForUpdateLayout;
 
-		thisInstance.requestAnUpdateOfLayout = requestAnUpdateOfLayout;
-		thisInstance.updateLayout = updateLayout;
 
+        // init
+        _init(thisInstance, constructionOptions);
+        // console.info('Initialized!', thisInstance);
+    };
 
 
 
-		// init
-		_init(thisInstance, constructionOptions);
-		// console.info('Initialized!', thisInstance);
-	};
 
 
+    function _init(thisInstance, initOptions) {
+        thisInstance.config(initOptions);
 
 
 
-	function _init(thisInstance, initOptions) {
-		thisInstance.config(initOptions);
+        _createBoundFunctions(thisInstance);
 
 
 
-		_createBoundFunctions(thisInstance);
+        // Store initial states
+        renewState.call(thisInstance, initOptions, true);
 
+        if (typeof initOptions.shouldEnableOnInit === 'boolean') {
+            enableOrDisable.call(thisInstance,
+                initOptions.shouldEnableOnInit,
+                initOptions.reasonForEnablingOrDisabling || initOptions.reason || 'User desired on initialization.'
+            );
+        } else if (thisInstance.options.shouldEnableOnInit) {
+            enable.call(thisInstance, 'Forced to enabled on initialization.');
+        }
 
+        updateLayout.call(thisInstance);
 
-		// Store initial states
-		renewAllRelatedInfo.call(thisInstance, initOptions, true);
 
-		if (typeof initOptions.shouldEnableHanging === 'boolean') {
-			enableOrDisableHangingBehaviour.call(
-				initOptions.shouldEnableHanging,
-				initOptions.reasonForEnablingOrDisabling || initOptions.reason || 'User desired on initialization.'
-			);
-		} else if (thisInstance.options.shouldEnableBahviourAtBeginning) {
-			enableHangingBehaviour.call(thisInstance, 'Forced to enabled on initialization.');
-		}
 
-		updateLayout.call(thisInstance);
 
+        // Third, also update layout whenever user is scrolling or resizing window
+        var boundFunctions = _privateDataOf(thisInstance).boundFunctions;
+        window.addEventListener('scroll', boundFunctions.listenToScrollEvent);
+        window.addEventListener('resize', boundFunctions.listenToResizeEvent);
+    }
 
+    function _privateDataOf(thisInstance) {
+        return privatePropertiesHost[thisInstance.__pToken];
+    }
 
+    function _createBoundFunctions(thisInstance) {
+        var boundFunctions = _privateDataOf(thisInstance).boundFunctions;
 
-		// Third, also update layout whenever user is scrolling or resizing window
-		var boundMethods = privatePropertiesHost[thisInstance.__pToken].boundMethods;
-		window.addEventListener('scroll', boundMethods.listenToWindowOnScrollEvent);
-		// window.addEventListener('resize', boundMethods.listenToWindowOnResizeEvent);
-	}
-	
-	function _createBoundFunctions(thisInstance) {
-		var boundMethods = privatePropertiesHost[thisInstance.__pToken].boundMethods;
+        boundFunctions.doIntervalOfRenewingState =
+            _doIntervalOfRenewingState.bind(null, thisInstance);
 
-		boundMethods.doIntervalForRenewingRelatedInfo =
-			_doIntervalForRenewingRelatedInfo.bind(null, thisInstance);
+        boundFunctions.doIntervalOfLayoutUpdate =
+            _doIntervalOfLayoutUpdate.bind(null, thisInstance);
 
-		boundMethods.doIntervalForUpdateLayout =
-			_doIntervalForUpdateLayout.bind(null, thisInstance);
 
 
+        // Even without a task in queue, we still need to update layout constantly.
+        // For example when user is scrolliing the page, nothing about the important measurements changed
+        // but obviously the _doUpdateLayout should be invoked still.
+        boundFunctions.doUpdateLayout = (function (/*event*/) {
+            _doUpdateLayout(thisInstance);
+        }).bind(thisInstance);
 
-		// Even without a task in queue, we still need to update layout constantly.
-		// For example when user is scrolliing the page, nothing about the important measurements changed
-		// but obviously the ___doUpdateLayout should be invoked still.
-		boundMethods.doUpdateLayout = (function (/*event*/) {
-			___doUpdateLayout(thisInstance);
-		}).bind(thisInstance);
 
 
 
+        var throttleWrappedAction = jQueryThrottle(
+            thisInstance.options.throttleTimeForScrollAndResizeListeners,
+            boundFunctions.doUpdateLayout
+        );
 
-		var throttleWrappedAction = jQueryThrottle(
-			thisInstance.options.delayTimeInMSForScrollAndResizeLinstenrThrottle,
-			boundMethods.doUpdateLayout
-		);
+        boundFunctions.listenToScrollEvent = throttleWrappedAction;
+        boundFunctions.listenToResizeEvent = throttleWrappedAction;
+    }
 
-		boundMethods.listenToWindowOnScrollEvent = throttleWrappedAction;
-		boundMethods.listenToWindowOnResizeEvent = throttleWrappedAction;
-	}
+    function isEnabled() {
+        return _privateDataOf(this).state.isEnabled;
+    }
 
-	function isEnabled() {
-		return privatePropertiesHost[this.__pToken].isEnabled;
-	}
+    function currentLayout() {
+        var layoutStates = _privateDataOf(this).state.layouts;
 
-	function currentLayout() {
-		var privateState = privatePropertiesHost[this.__pToken];
+        if (layoutStates.isFreeLayout) return 'free layout';
+        if (layoutStates.isPinnedToWindowTop) return 'pinned to top';
+        if (layoutStates.isPinnerToParentBottom) return 'following lower boundary';
 
-		if (privateState.isInFreeLayout) return 'free layout';
-		if (privateState.isPinnedToWindowTop) return 'pinned to top';
-		if (privateState.isPinnerToParentBottom) return 'following lower boundry';
+        throw RangeError(logNameOfClass, 'Fatal: None of the three states are active.');
+    }
 
-		throw RangeError(logNameOfClass, 'Fatal: None of the three states are active.');
-	}
+    function currentLayoutIs(layoutNameToCheck) {
+        var layoutStates = _privateDataOf(this).state.layouts;
 
-	function currentLayoutIs(layoutNameToCheck) {
-		var privateState = privatePropertiesHost[this.__pToken];
+        if (!layoutNameToCheck || typeof layoutNameToCheck !== 'string') {
+            return false;
+        }
 
-		if (!layoutNameToCheck || typeof layoutNameToCheck !== 'string') {
-			return false;
-		}
 
+        var normalizedString = layoutNameToCheck
+            .toLowerCase()
+            .replace(/\s*[\s\-]\s*/g, '-')
+            .replace(/^\s+/, '')
+            .replace(/\s+$/, '')
+            ;
 
-		var normalizedString = layoutNameToCheck
-			.toLowerCase()
-			.replace(/\s*[\s\-]\s*/g, '-')
-			.replace(/^\s+/, '')
-			.replace(/\s+$/, '')
-			;
+        switch (normalizedString) {
+        case 'free':
+        case 'freelayout':
+        case 'default':
+            return layoutStates.isFreeLayout;
 
-		switch (normalizedString) {
-		case 'free':
-		case 'freelayout':
-		case 'default':
-			return privateState.isInFreeLayout;
+        case 'top':
+        case 'hanging':
+        case 'pinned-to-top':
+            return layoutStates.isPinnedToWindowTop;
 
-		case 'top':
-		case 'hanging':
-		case 'pinned-to-top':
-			return privateState.isPinnedToWindowTop;
+        case 'following':
+        case 'bottom':
+        case 'following-lower-boundary':
+        case 'pinned-to-bottom':
+            return layoutStates.isPinnerToParentBottom;
+        }
 
-		case 'following':
-		case 'bottom':
-		case 'following-lower-boundry':
-		case 'pinned-to-bottom':
-			return privateState.isPinnerToParentBottom;
-		}
+        return false;
+    }
 
-		return false;
-	}
+    function config(options) {
+        var thisInstance = this,
+            moduleOptions = thisInstance.options,
+            pName,
+            pValue
+            ;
 
-	function config(options) {
-		var thisInstance = this,
-			moduleOptions = thisInstance.options,
-			elements = thisInstance.elements,
-			pName1,
-			pName2,
-			pValue
-			;
 
 
-		pName1 = 'hangingLowerBoundryRefEl'; // property name in options
-		pName2 = 'hangingLowerBoundryRef'; // property name in this.elements
-		if (options.hasOwnProperty(pName1)) {
-			pValue = options[pName1];
+        pName = 'intervalTimeForRenewingState';
+        if (options.hasOwnProperty(pName)) {
+            pValue = parseInt(options[pName]);
+            if (!isNaN(pValue) && pValue > 20) { // acceptable threshold
+                moduleOptions[pName] = pValue;
+            }
+        }
 
-			if (!(elements[pName2] instanceof Node)) {
-				// if element Never set yet
 
-				if (!(pValue instanceof Node)) {
-					elements[pName2] = elements.parentPositionRef;
-				} else {
-					elements[pName2] = pValue;
-				}
 
-			} else {
-				// if element already exists
+        pName = 'intervalTimeForUpdatingLayout';
+        if (options.hasOwnProperty(pName)) {
+            pValue = parseInt(options[pName]);
+            if (!isNaN(pValue) && pValue > 20) { // acceptable threshold
+                moduleOptions[pName] = pValue;
+            }
+        }
 
-				if (pValue instanceof Node) {
-					elements[pName2] = pValue;
-				}
 
-			}
-		}
 
+        _configAnEvent(thisInstance, 'onEnabling', options);
+        _configAnEvent(thisInstance, 'onEnabled', options);
 
+        _configAnEvent(thisInstance, 'onDisabling', options);
+        _configAnEvent(thisInstance, 'onDisabled', options);
 
-		pName1 = 'intervalTimeInMSForRenewingRelativInfo';
-		if (options.hasOwnProperty(pName1)) {
-			pValue = parseInt(options[pName1]);
-			if (!isNaN(pValue) && pValue > 20) { // acceptable threshold
-				moduleOptions[pName1] = pValue;
-			}
-		}
+        _configAnEvent(thisInstance, 'onDestroying', options);
+        _configAnEvent(thisInstance, 'onDestroyed', options);
 
+        _configAnEvent(thisInstance, 'onReturningToFreeLayout', options);
+        _configAnEvent(thisInstance, 'onReturnedToFreeLayout', options);
 
+        // _configAnEvent(thisInstance, 'onUpdatingLayout', options);
+        // _configAnEvent(thisInstance, 'onUpdatedLayout', options);
 
-		pName1 = 'intervalTimeInMSForUpdatingLayout';
-		if (options.hasOwnProperty(pName1)) {
-			pValue = parseInt(options[pName1]);
-			if (!isNaN(pValue) && pValue > 20) { // acceptable threshold
-				moduleOptions[pName1] = pValue;
-			}
-		}
+        _configAnEvent(thisInstance, 'onIntervalBegin', options);
+        _configAnEvent(thisInstance, 'onIntervalEnd', options);
+    }
 
+    function _configAnEvent(thisInstance, eventName, options) {
+        var eventsHost = _privateDataOf(thisInstance).events,
+            input = options[eventName]
+        ;
 
+        if (typeof input === 'function' || input === undefined) {
+            eventsHost[eventName] = input;
+        }
+    }
 
-		_configAnEvent(thisInstance, 'onEnabling', options);
-		_configAnEvent(thisInstance, 'onEnabled', options);
+    function _dispatchAnEvent(thisInstance, eventName, shouldWarnIfNotHandled) {
+        var eventsHost = _privateDataOf(thisInstance).events;
 
-		_configAnEvent(thisInstance, 'onDisabling', options);
-		_configAnEvent(thisInstance, 'onDisabled', options);
+        if (typeof eventsHost[eventName] !== 'function') {
+            if (shouldWarnIfNotHandled) {
+                console.warn('The "' + eventName + '" is NOT handled.');
+            }
 
-		_configAnEvent(thisInstance, 'onDestroying', options);
-		_configAnEvent(thisInstance, 'onDestroyed', options);
+            return;
+        } else {
+            return eventsHost[eventName].call(thisInstance, thisInstance.state);
+        }
+    }
 
-		_configAnEvent(thisInstance, 'onReturningToFreeLayout', options);
-		_configAnEvent(thisInstance, 'onReturnedToFreeLayout', options);
 
-		// _configAnEvent(thisInstance, 'onUpdatingLayout', options);
-		// _configAnEvent(thisInstance, 'onUpdatedLayout', options);
 
-		_configAnEvent(thisInstance, 'onIntervalBegin', options);
-		_configAnEvent(thisInstance, 'onIntervalEnd', options);
-	}
 
-	function _configAnEvent(thisInstance, eventName, options) {
-		var eventsHost = privatePropertiesHost[thisInstance.__pToken].events,
-			input = options[eventName]
-		;
 
-		if (typeof input === 'function' || input === undefined) {
-			eventsHost[eventName] = input;
-		}
-	}
 
-	function _dispatchAnEvent(thisInstance, eventName, shouldWarnIfNotHandled, warningMsg) {
-		var eventsHost = privatePropertiesHost[thisInstance.__pToken].events;
+    function enable(reasonForEnabling) {
+        enableOrDisable.call(this, true, reasonForEnabling);
+    }
 
-		if (typeof eventsHost[eventName] !== 'function') {
-			if (shouldWarnIfNotHandled) {
-				warningMsg = warningMsg || 'The "'+eventName+'" is NOT handled.';
-				console.warn(warningMsg);
-			}
+    function disable(reasonForDisabling, shouldDestroyAfterDisabled) {
+        enableOrDisable.call(this, false, reasonForDisabling, shouldDestroyAfterDisabled);
+    }
 
-			return;
-		} else {
-			return eventsHost[eventName].call(thisInstance, thisInstance.state);
-		}
-	}
+    function destroy(reason) {
+        disable.call(this, reason, true);
+    }
 
-	function destroy(reason) {
-		disableHangingBehaviour.call(this, reason, true);
-	}
+    function enableOrDisable(shouldEnable, reason, shouldDestroyAfterDisabled) {
+        if (typeof shouldEnable === 'undefined') return;
+        shouldEnable = !!shouldEnable;
 
-	function _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance) {
-		var elements = thisInstance.elements,
-			boundMethods = privatePropertiesHost[thisInstance.__pToken].boundMethods
-		;
 
-		window.removeEventListener('scroll', boundMethods.listenToWindowOnScrollEvent);
-		window.removeEventListener('resize', boundMethods.listenToWindowOnResizeEvent);
+        var shouldCancel = _onEnablingOrDisabling(this,
+            shouldEnable,
+            shouldDestroyAfterDisabled
+        );
 
-		elements.root.style.height = '';
-		elements.chiefContent.style.top = '';
-		______soloCssClassTo(thisInstance, null);
+        if (shouldCancel) {
+            var logString1 = shouldEnable ? 'Enabling' : shouldDestroyAfterDisabled ? 'DESTORYING' : 'DISABLING';
+            console.warn(logString1, 'request was cancelled.');
+            return;
+        }
 
-		_dispatchAnEvent(thisInstance, 'onDestroyed', true);
-	}
 
 
+        var newState = {};
+        newState.shouldEnable = !!shouldEnable;
 
+        // must contains a reason property,
+        // for overwriting that of previously queued states.
+        newState.reason = (reason && typeof reason === 'string') ? reason : '<unkown>';
 
+        if (!shouldEnable && shouldDestroyAfterDisabled) {
+            newState.isForcedToRenew = true;
+            newState.shouldDestroyAfterDisabled = true;
+        }
 
-	function enableOrDisableHangingBehaviour(shouldEnableHanging, reason, shouldDestroyAfterDisabled) {
-		if (typeof shouldEnableHanging === 'undefined') return;
-		shouldEnableHanging = !!shouldEnableHanging;
+        requestLayoutUpdate.call(this, newState);
 
 
-		var shouldCancel = _onEnablingOrDisablingHangingBehviour(this,
-			shouldEnableHanging,
-			shouldDestroyAfterDisabled
-		);
+        updateLayout.call(this);
+    }
 
-		if (shouldCancel) {
-			var logString1 = shouldEnableHanging ? 'Enabling' : shouldDestroyAfterDisabled ? 'DESTORYING' : 'DISABLING';
-			console.warn(logString1, 'request was cancelled.');
-			return;
-		}
+    function _onEnablingOrDisabling(thisInstance, willEnable, shouldDestroyAfterDisabled) {
+        // return value: true means shouldCancel <boolean>
+        // Note that event handlers also return true means shouldCancel <boolean>
 
 
+        if (willEnable) {
+            return _dispatchAnEvent(thisInstance, 'onEnabling');
+        }
 
-		var newState = {};
-		newState.shouldEnableHanging = !!shouldEnableHanging;
-		
-		// must contains a reason property,
-		// for overwriting that of previously queued states.
-		newState.reason = (reason && typeof reason === 'string') ? reason : '<unkown>';
 
-		if (!shouldEnableHanging && shouldDestroyAfterDisabled) {
-			newState.isForcedToRenew = true;
-			newState.shouldDestroyAfterDisabled = true;
-		}
+        var shouldCancelDisabling = _dispatchAnEvent(thisInstance, 'onDisabling');
 
-		requestAnUpdateOfLayout.call(this, newState);
+        if (shouldCancelDisabling) {
+            if (!shouldDestroyAfterDisabled) {
+                return shouldCancelDisabling;
+            } else {
+                console.warn('Destroying request will be cancelled by onDisabling handler.');
+            }
+        }
 
 
-		updateLayout.call(this);
-	}
+        return _dispatchAnEvent(thisInstance, 'onDestroying');
+    }
 
-	function enableHangingBehaviour(reasonForEnabling) {
-		enableOrDisableHangingBehaviour.call(this, true, reasonForEnabling);
-	}
+    function _onEnabledOrDisabled(thisInstance, isNowEnabled) {
+        var publicState = thisInstance.state;
 
-	function disableHangingBehaviour(reasonForDisabling, shouldDestroyAfterDisabled) {
-		enableOrDisableHangingBehaviour.call(this, false, reasonForDisabling, shouldDestroyAfterDisabled);
-	}
+        // console.log('\n===== _onEnabledOrDisabled', isNowEnabled, '\n=====');
+        _privateDataOf(thisInstance).state.isEnabled = isNowEnabled;
 
-	function _onEnablingOrDisablingHangingBehviour(thisInstance, willEnable, shouldDestroyAfterDisabled) {
-		// return value: true means shouldCancel <boolean>
-		// Note that event handlers also return true means shouldCancel <boolean>
+        if (isNowEnabled) {
+            delete publicState.shouldDestroyAfterDisabled;
 
+            // The invocation below might cause an infinite loop!
+            // Enhancements are needed!
+            _dispatchAnEvent(thisInstance, 'onEnabled');
+        } else {
+            _dispatchAnEvent(thisInstance, 'onDisabled');
 
-		if (willEnable) {
-			return _dispatchAnEvent(thisInstance, 'onEnabling');
-		}
+            thisInstance.clearIntervalOfRenewingState();
+            thisInstance.clearIntervalOfLayoutUpdate();
 
+            if (publicState.shouldDestroyAfterDisabled) {
+                _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance);
+            }
+        }
+    }
 
-		var shouldCancelDisabling = _dispatchAnEvent(thisInstance, 'onDisabling');
+    function _destroyOneInstanceAfterLayoutRestoredToFree(thisInstance) {
+        var elements = thisInstance.elements,
+            boundFunctions = _privateDataOf(thisInstance).boundFunctions
+        ;
 
-		if (shouldCancelDisabling) {
-			if (!shouldDestroyAfterDisabled) {
-				return shouldCancelDisabling;
-			} else {
-				console.warn('Destroying request will be cancelled by onDisabling handler.');
-			}
-		}
+        window.removeEventListener('scroll', boundFunctions.listenToScrollEvent);
+        window.removeEventListener('resize', boundFunctions.listenToResizeEvent);
 
+        elements.root.style.height = '';
+        elements.hangingBlock.style.top = '';
+        ______soloCssClassTo(thisInstance, null);
 
-		return _dispatchAnEvent(thisInstance, 'onDestroying');
-	}
+        _dispatchAnEvent(thisInstance, 'onDestroyed', true);
+    }
 
-	function _onEnabledOrDisabledHangingBehviour(thisInstance, isNowEnabled) {
-		var publicState = thisInstance.state,
-			privateData = privatePropertiesHost[thisInstance.__pToken]
-		;
 
-		// console.log('\n===== _onEnabledOrDisabledHangingBehviour', isNowEnabled, '\n=====');
-		privateData.isEnabled = isNowEnabled;
 
-		if (isNowEnabled) {
-			delete publicState.shouldDestroyAfterDisabled;
 
-			// The invocation below might cause an infinite loop!
-			// Enhancements are needed!
-			_dispatchAnEvent(thisInstance, 'onEnabled');
-		} else {
-			_dispatchAnEvent(thisInstance, 'onDisabled');
+    function startIntervalOfRenewingState() {
+        _startOrClearIntervalOfRenewingState(this, true);
+    }
+    function clearIntervalOfRenewingState() {
+        _startOrClearIntervalOfRenewingState(this, false);
+    }
+    function _startOrClearIntervalOfRenewingState(thisInstance, shouldStart) {
+        var privateData = _privateDataOf(thisInstance),
+            privateState = privateData.state,
+            logString1 = shouldStart ? 'Starting' : 'STOPPING',
+            logString2 = 'interval for renewing related info.',
+            // logString3 =  '\n\t module rootElement:',
+            // rootElement = thisInstance.elements.root,
+            pNameForIndex = 'intervalIDForRenewingState',
+            currentIndex = privateState[pNameForIndex],
+            hasActiveInterval = !isNaN(currentIndex)
+            ;
 
-			thisInstance.clearIntervalForRenewingRelatedInfo();
-			thisInstance.clearIntervalForUpdateLayout();
+        if (shouldStart && !hasActiveInterval) {
+            console.info(logString1, logString2
+                // , logString3, rootElement
+            );
+            privateState[pNameForIndex] = setInterval(
+                privateData.boundFunctions.doIntervalOfRenewingState,
+                thisInstance.options.intervalTimeForRenewingState
+            );
+        } else if (!shouldStart && hasActiveInterval) {
+            console.warn(logString1, logString2
+                // , logString3, rootElement
+            );
+            clearInterval(currentIndex);
+            privateState[pNameForIndex] = NaN;
+        }
+    }
+    function _doIntervalOfRenewingState(thisInstance) {
+        var shouldCancel = _dispatchAnEvent(thisInstance, 'onIntervalBegin');
 
-			if (publicState.shouldDestroyAfterDisabled) {
-				_destroyOneInstanceAfterLayoutRestoredToFree(thisInstance);
-			}
-		}
-	}
+        if (!shouldCancel) {
+            renewState.call(thisInstance, null, true);
+        }
 
+        // even if this interval is cancelled, still call the onIntervalEnd event
+        // need more thinking
+        _dispatchAnEvent(thisInstance, 'onIntervalEnd');
+    }
 
 
 
 
-	function startIntervalForRenewingRelatedInfo() {
-		_startOrClearIntervalForRenewingRelatedInfo(this, true);
-	}
+    function startIntervalOfLayoutUpdate() {
+        _startOrClearIntervalOfLayoutUpdate(this, true);
+    }
+    function clearIntervalOfLayoutUpdate() {
+        _startOrClearIntervalOfLayoutUpdate(this, false);
+    }
+    function _startOrClearIntervalOfLayoutUpdate(thisInstance, shouldStart) {
+        var privateData = _privateDataOf(thisInstance),
+            privateState = privateData.state,
+            logString1 = shouldStart ? 'Starting' : 'STOPPING',
+            logString2 = 'interval for updating layout.',
+            // logString3 = indentAlignsToLogNameOfClass.slice(0, -15) + ' module rootElement:',
+            // rootElement = this.elements.root,
+            pNameForIndex = 'intervalIDForUpdatingLayout',
+            currentIndex = privateState[pNameForIndex],
+            hasActiveInterval = !isNaN(currentIndex)
+            ;
 
-	function clearIntervalForRenewingRelatedInfo() {
-		_startOrClearIntervalForRenewingRelatedInfo(this, false);
-	}
+        if (shouldStart && !hasActiveInterval) {
+            console.info(logString1, logString2
+                // , '\n' + logString3, rootElement
+            );
+            privateState[pNameForIndex] = setInterval(
+                privateData.boundFunctions.doIntervalOfLayoutUpdate,
+                thisInstance.options.intervalTimeForUpdatingLayout
+            );
+        } else if (!shouldStart && hasActiveInterval) {
+            console.warn(logString1, logString2
+                // , '\n ' + logString3, rootElement
+            );
+            clearInterval(currentIndex);
+            privateState[pNameForIndex] = NaN;
+        }
+    }
+    function _doIntervalOfLayoutUpdate(thisInstance) {
+        updateLayout.call(thisInstance);
+    }
 
-	function _startOrClearIntervalForRenewingRelatedInfo(thisInstance, shouldStart) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken],
-			logString1 = shouldStart ? 'Starting' : 'STOPPING',
-			logString2 = 'interval for renewing related info.',
-			// logString3 =  '\n\t module rootEl:',
-			// rootEl = thisInstance.elements.root,
-			pNameForIndex = 'intervalIDForRenewingRelatedInfo',
-			currentIndex = privateData[pNameForIndex],
-			hasActiveInterval = !isNaN(currentIndex)
-			;
 
-		if (shouldStart && !hasActiveInterval) {
-			console.info(logString1, logString2
-				// , logString3, rootEl
-			);
-			privateData[pNameForIndex] = setInterval(
-				privateData.boundMethods.doIntervalForRenewingRelatedInfo,
-				thisInstance.options.intervalTimeInMSForRenewingRelativInfo
-			);
-		} else if (!shouldStart && hasActiveInterval) {
-			console.warn(logString1, logString2
-				// , logString3, rootEl
-			);
-			clearInterval(currentIndex);
-			privateData[pNameForIndex] = NaN;			
-		}
-	}
 
-	function _doIntervalForRenewingRelatedInfo(thisInstance) {
-		var shouldCancel = _dispatchAnEvent(thisInstance, 'onIntervalBegin');
 
-		if (!shouldCancel) {
-			renewContentHeight.call(thisInstance, true);
-			renewHangingLowerBoundryValue.call(thisInstance, true);
-			renewContentTopToRootTopInFreeLayout.call(thisInstance, true);
-			renewContentTopToPageTopInFreeLayout.call(thisInstance, true);
-		}
+    // renew all state but NOT the global switch, aka the this.state.shouldEnable
+    function renewStateAndThenUpdate(options) {
+        renewState.call(this, options, false);
+        updateLayout.call(this);
+    }
 
-		// even if this interval is cancelled, still call the onIntervalEnd event
-		_dispatchAnEvent(thisInstance, 'onIntervalEnd');
-	}
+    // renew all state but NOT the global switch, aka the this.state.shouldEnable
+    function renewState(options, isForcedToRenew) {
+        // actions that relies on arguments
+        if (typeof options === 'object' && options) {
+            setContentTopToWindowTopInHangingLayouts.call(this,
+                options.contentTopToWindowTopInHangingLayouts,
+                isForcedToRenew
+            );
 
+            setContentBottomToLowerBoundary.call(this,
+                options.contentBottomToLowerBoundaryInHangingLayouts,
+                isForcedToRenew
+            );
 
+            var edgeUsageHasBeenDecidedViaNewRefElement = setLowerBoundaryRefElement.call(this,
+                options.lowerBoundaryRefElement,
+                isForcedToRenew
+            );
 
+            if (!edgeUsageHasBeenDecidedViaNewRefElement) {
+                setUsedEdgeOfLowerBoundaryRefElement.call(this,
+                    options.shouldUseBottomEdgeOfLowerBoundaryRefElement,
+                    isForcedToRenew
+                );
+            }
+        }
 
-	function startIntervalForUpdateLayout() {
-		_startOrClearIntervalForUpdateLayout(this, true);
-	}
-	function clearIntervalForUpdateLayout() {
-		_startOrClearIntervalForUpdateLayout(this, false);
-	}
-	function _startOrClearIntervalForUpdateLayout(thisInstance, shouldStart) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken],
-			logString1 = shouldStart ? 'Starting' : 'STOPPING',
-			logString2 = 'interval for updating layout.',
-			// logString3 = indentAlignsToLogNameOfClass.slice(0, -15) + ' module rootEl:',
-			// rootEl = this.elements.root,
-			pNameForIndex = 'intervalIDForUpdatingLayout',
-			currentIndex = privateData[pNameForIndex],
-			hasActiveInterval = !isNaN(currentIndex)
-			;
 
-		if (shouldStart && !hasActiveInterval) {
-			console.info(logString1, logString2
-				// , '\n' + logString3, rootEl
-			);
-			privateData[pNameForIndex] = setInterval(
-				privateData.boundMethods.doIntervalForUpdateLayout,
-				thisInstance.options.intervalTimeInMSForUpdatingLayout
-			);
-		} else if (!shouldStart && hasActiveInterval) {
-			console.warn(logString1, logString2
-				// , '\n ' + logString3, rootEl
-			);
-			clearInterval(currentIndex);
-			privateData[pNameForIndex] = NaN;			
-		}
-	}
-	function _doIntervalForUpdateLayout(thisInstance) {
-		updateLayout.call(thisInstance);
-	}
 
+        // actions that need no arguments
+        _renewContentHeight.call(this, isForcedToRenew);
+        _renewContentTopToRootTopInFreeLayout.call(this, isForcedToRenew);
+        _renewContentTopToPageTopInFreeLayout.call(this, isForcedToRenew);
+    }
 
 
 
-	// renew all state but NOT the global swith, aka the this.state.shouldEnableHanging
-	function renewAllRelatedInfoAndThenUpdate(options) {
-		renewAllRelatedInfo.call(this, options, false);
-		updateLayout.call(this);
-	}
+    function setContentTopToWindowTopInHangingLayouts(newExtraSpace, isForcedToRenew) {
+        var newState = {};
 
-	// renew all state but NOT the global swith, aka the this.state.shouldEnableHanging
-	function renewAllRelatedInfo(options, isForcedToRenew) {
-		var didntRequestAnUpdateForHangingLowerBoundryUsedBorder = true;
+        if (isForcedToRenew) newState.isForcedToUpdate = true;
 
+        newExtraSpace = parseFloat(newExtraSpace);
+        if (!isNaN(newExtraSpace)) {
+            newState.contentTopToWindowTopInHangingLayouts = newExtraSpace;
+        }
 
+        requestLayoutUpdate.call(this, newState);
+    }
 
-		// actions that relies on arguments
-		if (typeof options === 'object' && options) {
-			renewContentTopToWindowTopInHangingLayouts.call(this,
-				options.contentTopToWindowTopInHangingLayouts,
-				isForcedToRenew
-			);
+    function setContentBottomToLowerBoundary(newExtraSpace, isForcedToRenew) {
+        var newState = {};
 
-			renewContentBottomDistanceToLowerBoundry.call(this,
-				options.contentBottomDistanceToLowerBoundryInHangingLayouts,
-				isForcedToRenew
-			);
+        if (isForcedToRenew) newState.isForcedToUpdate = true;
 
+        newExtraSpace = parseFloat(newExtraSpace);
+        if (!isNaN(newExtraSpace)) {
+            newState.contentBottomToLowerBoundaryInHangingLayouts = newExtraSpace;
+        }
 
-			didntRequestAnUpdateForHangingLowerBoundryUsedBorder = renewHangingLowerBoundryUsedBorder.call(this,
-				options.shouldUseBottomOfHangingLowerBoundryRef,
-				isForcedToRenew
-			);
-		}
+        requestLayoutUpdate.call(this, newState);
+    }
 
+    function setLowerBoundaryRefElement(newElement, isForcedToRenew) {
+        var newState = {};
 
+        if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		// actions that need no arguments
+        var elements = this.elements,
+            rootElement = elements.root,
+            pName = 'lowerBoundaryRef',
+            newElementIsValid = true,
+            logString1 = 'The lower boundary ref element',
+            logString2 = 'This doesn\'t make any sense. Ref element NOT renewed.'
+            ;
 
-		if (didntRequestAnUpdateForHangingLowerBoundryUsedBorder) {
-			renewHangingLowerBoundryValue.call(this, isForcedToRenew);
-		} else {
-			// renewHangingLowerBoundryUsedBorder will implicitly call renewHangingLowerBoundryValue
-		}
+        if (newElement !== null) { // null value is acceptable for removing lower boundary ref element
+            if (!(newElement instanceof Node)) {
+                newElementIsValid = false;
+            } else if (domAIsChildOfB(newElement, rootElement)) {
+                newElementIsValid = false;
+                console.warn(logString1, 'is a descendant of the root element.', logString2);
+            } else if (newElement === rootElement) {
+                newElementIsValid = false;
+                console.warn(logString1, 'is the same dom as the root element.', logString2);
+            }
+        }
 
-		renewContentHeight.call(this, isForcedToRenew);
-		renewContentTopToRootTopInFreeLayout.call(this, isForcedToRenew);
-		renewContentTopToPageTopInFreeLayout.call(this, isForcedToRenew);
-	}
 
-	function renewContentHeight(isForcedToRenew) {
-		var newState = {
-			blockHeight: this.elements.chiefContent.offsetHeight
-		};
+        var edgeUsageHasBeenDecidedHereInsideThisFunction = false;
 
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
+        if (newElementIsValid && elements[pName] !== newElement) {
+            elements[pName] = newElement;
+            newState[pName + 'Element'] = newElement;
 
-		requestAnUpdateOfLayout.call(this, newState);
-	}
+            if (domAIsChildOfB(rootElement, newElement)) {
+                setUsedEdgeOfLowerBoundaryRefElement.call(this, true, isForcedToRenew);
 
-	function renewContentTopToRootTopInFreeLayout(isForcedToRenew) {
-		var newState = {},
-			pName = 'contentTopToRootTopInFreeLayout'
-		;
+                // Here the false value means
+                // the "shouldUseBottomEdgeOfLowerBoundaryRefElement"
+                // has been decided here (the above line),
+                // so the setUsedEdgeOfLowerBoundaryRefElement()
+                // should NOT be invoked inside the renewState() again,
+                // thus the input argument for "shouldUseBottomEdgeOfLowerBoundaryRefElement"
+                // will be ignored if any.
+                edgeUsageHasBeenDecidedHereInsideThisFunction = true;
+            }
 
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
+            requestLayoutUpdate.call(this, newState);
+        }
 
-		newState[pName] = this.elements.chiefContent.offsetTop;
+        return edgeUsageHasBeenDecidedHereInsideThisFunction;
+    }
 
-		requestAnUpdateOfLayout.call(this, newState);
-	}
+    function setUsedEdgeOfLowerBoundaryRefElement(shouldUseBottomEdgeOfLowerBoundaryRefElement, isForcedToRenew) {
+        var thisInstance = this,
+            elements = thisInstance.elements
+        ;
 
-	function renewContentTopToWindowTopInHangingLayouts(newExtraSpace, isForcedToRenew) {
-		var newState = {};
+        if (typeof shouldUseBottomEdgeOfLowerBoundaryRefElement !== 'boolean') {
+            return;
+        }
 
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
+        if (domAIsChildOfB(elements.root, elements.lowerBoundaryRef)) {
+            // Should always use 'bottom'
+            return;
+        }
 
-		newExtraSpace = parseFloat(newExtraSpace);
-		if (!isNaN(newExtraSpace)) {
-			newState.contentTopToWindowTopInHangingLayouts = newExtraSpace;
-		}
+        var newState = {};
 
-		requestAnUpdateOfLayout.call(this, newState);
-	}
+        if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-	function renewContentBottomDistanceToLowerBoundry(newExtraSpace, isForcedToRenew) {
-		var newState = {};
+        newState.shouldUseBottomEdgeOfLowerBoundaryRefElement = !!shouldUseBottomEdgeOfLowerBoundaryRefElement;
 
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
+        requestLayoutUpdate.call(thisInstance, newState);
+    }
 
-		newExtraSpace = parseFloat(newExtraSpace);
-		if (!isNaN(newExtraSpace)) {
-			newState.contentBottomDistanceToLowerBoundryInHangingLayouts = newExtraSpace;
-		}
 
-		requestAnUpdateOfLayout.call(this, newState);
-	}
 
+    function _renewContentHeight(isForcedToRenew) {
+        var newState = {
+            blockHeight: this.elements.hangingBlock.offsetHeight
+        };
 
-	function renewContentTopToPageTopInFreeLayout(isForcedToRenewWithoutWaitingForLayoutToSwitch) {
-		var thisInstance = this,
-			privateData = privatePropertiesHost[thisInstance.__pToken],
-			shouldDoRenew = true,
-			functionForSwitchingToCorrectLayout,
-			forcedImmediateSwitchingWasSkipped = true,
-			pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout'
-			;
+        if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		if (!privateData.isInFreeLayout) {
-			if (isForcedToRenewWithoutWaitingForLayoutToSwitch) {
-				privateData[pNameNextTimeRenewFreeLayout] = false;
-				functionForSwitchingToCorrectLayout = thisInstance.state.methodForSwitchingToCurrentLayout;
-				forcedImmediateSwitchingWasSkipped = ____switchLayoutToFree(
-					thisInstance,
-					isForcedToRenewWithoutWaitingForLayoutToSwitch,
-					true
-				);
-			} else {
-				// console.debug('Action holded for a later time.');
-				shouldDoRenew = false;
-				privateData[pNameNextTimeRenewFreeLayout] = true;
-			}
-		}
+        requestLayoutUpdate.call(this, newState);
+    }
 
-		if (shouldDoRenew) {
-			_doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenewWithoutWaitingForLayoutToSwitch);
-		}
+    function _renewContentTopToRootTopInFreeLayout(isForcedToRenew) {
+        var newState = {},
+            pName = 'contentTopToRootTopInFreeLayout'
+        ;
 
-		if (
-			!forcedImmediateSwitchingWasSkipped
-			&& typeof functionForSwitchingToCorrectLayout === 'function'
-		) {
-			// console.debug('Restore layout after switching to free layout temporarily.');
-			functionForSwitchingToCorrectLayout(thisInstance);
-		}
-	}
+        if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-	function _doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenew) {
-		var contentClientRect = thisInstance.elements.chiefContent.getBoundingClientRect();
+        newState[pName] = this.elements.hangingBlock.offsetTop;
 
-		if (contentClientRect.width === 0 && contentClientRect.height === 0) {
-			console.warn(
-				'\n\t Cannot evaluate chiefContentEl\'s "boundingClientRect"!',
-				'\n\t The chief content elment might not be visible at the moment.'
-			);
-			return;
-		}
+        requestLayoutUpdate.call(this, newState);
+    }
 
+    function _renewContentTopToPageTopInFreeLayout(isForcedToRenewWithoutWaitingForLayoutToSwitch) {
+        var thisInstance = this,
+            privateState = _privateDataOf(thisInstance).state,
+            shouldDoRenew = true,
+            functionForSwitchingToCorrectLayout,
+            forcedImmediateSwitchingWasSkipped = true,
+            pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout'
+            ;
 
-		var newState = {};
+        if (!privateState.layouts.isFreeLayout) {
+            if (isForcedToRenewWithoutWaitingForLayoutToSwitch) {
+                privateState[pNameNextTimeRenewFreeLayout] = false;
+                functionForSwitchingToCorrectLayout = thisInstance.state.methodForSwitchingToCurrentLayout;
+                forcedImmediateSwitchingWasSkipped = ____switchLayoutToFree(
+                    thisInstance,
+                    isForcedToRenewWithoutWaitingForLayoutToSwitch,
+                    true
+                );
+            } else {
+                // console.debug('Action holded for a later time.');
+                shouldDoRenew = false;
+                privateState[pNameNextTimeRenewFreeLayout] = true;
+            }
+        }
 
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
+        if (shouldDoRenew) {
+            __doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenewWithoutWaitingForLayoutToSwitch);
+        }
 
-		newState.contentTopToPageTopInFreeLayout = contentClientRect.top + window.scrollY;
-		// console.log('*** newState: content top to page:', newState.contentTopToPageTopInFreeLayout, '***');
+        if (
+            !forcedImmediateSwitchingWasSkipped
+            && typeof functionForSwitchingToCorrectLayout === 'function'
+        ) {
+            // console.debug('Restore layout after switching to free layout temporarily.');
+            functionForSwitchingToCorrectLayout(thisInstance);
+        }
+    }
 
-		requestAnUpdateOfLayout.call(thisInstance, newState);
-	}
+    function __doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenew) {
+        var contentClientRect = thisInstance.elements.hangingBlock.getBoundingClientRect();
 
-	function renewHangingLowerBoundryUsedBorder(shouldUseBottomOfHangingLowerBoundryRef, isForcedToRenew) {
-		var thisInstance = this,
-			elements = thisInstance.elements
-		;
+        if (contentClientRect.width === 0 && contentClientRect.height === 0) {
+            console.warn(
+                '\n\t Cannot evaluate hangingBlockElement\'s "boundingClientRect"!',
+                '\n\t The chief content elment might not be visible at the moment.'
+            );
+            return;
+        }
 
-		if (elements.parentPositionRef === elements.hangingLowerBoundryRef ||
-			shouldUseBottomOfHangingLowerBoundryRef === null ||
-			shouldUseBottomOfHangingLowerBoundryRef === undefined
-		) {
-			// Should always use 'bottom'
-			return true;
-		}
 
-		// update public state directly here,
-		// to ensure renewHangingLowerBoundryValue execute correctly
-		// but need more thinking
-		thisInstance.state.shouldUseBottomOfHangingLowerBoundryRef = !!shouldUseBottomOfHangingLowerBoundryRef;
+        var newState = {};
 
-		var newState = {};
+        if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
+        newState.contentTopToPageTopInFreeLayout = contentClientRect.top + window.scrollY;
+        // console.log('*** newState: content top to page:', newState.contentTopToPageTopInFreeLayout, '***');
 
-		renewHangingLowerBoundryValue.call(this, isForcedToRenew);
+        requestLayoutUpdate.call(thisInstance, newState);
+    }
 
-		return false;
-	}
 
-	function renewHangingLowerBoundryValue(isForcedToRenew) {
-		var newState = _evaluateHangingBoundries(this);
 
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		requestAnUpdateOfLayout.call(this, newState);
-	}
 
-	function _evaluateHangingBoundries(thisInstance) {
-		// this function not only updates some state values,
-		// but also returns a newState object for other function to utilize
+    function requestLayoutUpdate(newStateOrFunctionToGenerateNewStateOrABoolean) {
+        var thisInstance = this,
+            statesQueue = _privateDataOf(thisInstance).updatingStatesQueue
+        ;
 
-		var publicState = thisInstance.state,
-			pName = 'hangingLowerBoundryToPageTop',
-			refNewYToWindowTop = NaN,
-			refNewYToPageTop = NaN
-			;
 
-		var refElementClientRect = thisInstance.elements.hangingLowerBoundryRef.getBoundingClientRect();
-		if (refElementClientRect.width === 0 && refElementClientRect.height === 0) {
-			console.warn('Reference element for deciding hanging lower boundry is invisible at this moment.');
-		} else {
-			refNewYToWindowTop = refElementClientRect[publicState.shouldUseBottomOfHangingLowerBoundryRef ? 'bottom' : 'top'];
-			refNewYToPageTop = refNewYToWindowTop + window.scrollY;
-		}
+        // At presnet, no more than one state is allowed in queue.
+        // So whenever there exists one item in the array,
+        // we simply use it, instead of create a new one.
+        var shouldCreateNewStateObject = !statesQueue[statesQueue.length - 1];
+        if (shouldCreateNewStateObject) {
+            statesQueue.push({});
+        }
 
 
-		// values below might be NaN, as long as the refElement is not available any more or is hidden
-		privatePropertiesHost[thisInstance.__pToken].hangingLowerBoundryToWindowTop = refNewYToWindowTop;
-		publicState[pName] = refNewYToPageTop;
+        var stateToUpdate = statesQueue[statesQueue.length - 1];
 
+        if (typeof newStateOrFunctionToGenerateNewStateOrABoolean === 'function') {
+            newStateOrFunctionToGenerateNewStateOrABoolean.call(thisInstance, stateToUpdate);
+        } else if (
+            typeof newStateOrFunctionToGenerateNewStateOrABoolean === 'object' &&
+            !Array.isArray(newStateOrFunctionToGenerateNewStateOrABoolean)
+        ) {
+            // console.debug('merging states in the queue...');
+            mergeBIntoA(stateToUpdate, newStateOrFunctionToGenerateNewStateOrABoolean);
+        } else {
+            stateToUpdate.isForcedToUpdate = stateToUpdate.isForcedToUpdate ||
+                (typeof newStateOrFunctionToGenerateNewStateOrABoolean === 'undefined') ||
+                !!newStateOrFunctionToGenerateNewStateOrABoolean
+                ;
+        }
+    }
 
-		var newState = {};
-		newState[pName] = refNewYToPageTop;
-		return newState;
-	}
+    // function _processAllupdatingStatesQueue(thisInstance) {
+    // 	while (_privateDataOf(this).updatingStatesQueue.length > 0) {
+    // 		__processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance);
+    // 	}
+    // 	___updateAllDerivedStatesAccordingToNewState();
+    // }
 
+    function __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance) {
+        var privateData = _privateDataOf(thisInstance);
 
+        var newState = privateData.updatingStatesQueue.shift();
 
-	function requestAnUpdateOfLayout(newStateOrFunctionToGenerateNewStateOrABoolean) {
-		var thisInstance = this,
-			statesQueue = privatePropertiesHost[thisInstance.__pToken].queuedStatesForUpdatesOfLayout
-		;
+        ___detectChangesBetweenStates(thisInstance, thisInstance.state, newState);
 
 
-		// At presnet, no more than one state is allowed in queue.
-		// So whenever there exists one item in the array,
-		// we simply use it, instead of create a new one.
-		var shouldCreateNewStateObject = !statesQueue[statesQueue.length-1];
-		if (shouldCreateNewStateObject) {
-			statesQueue.push({});
-		}
+        // console.debug(
+        // 	'******** newState to update ********',
+        // 	'\n'+'updateLayout();', 
+        // 	'\n'+JSON.stringify(newState),
+        // 	'\n\n\n'
+        // );
 
+        return newState;
+    }
 
-		var stateToUpdate = statesQueue[statesQueue.length-1];
 
-		if (typeof newStateOrFunctionToGenerateNewStateOrABoolean === 'function') {
-			newStateOrFunctionToGenerateNewStateOrABoolean.call(thisInstance, stateToUpdate);
-		} else if (
-			typeof newStateOrFunctionToGenerateNewStateOrABoolean === 'object' &&
-			!Array.isArray(newStateOrFunctionToGenerateNewStateOrABoolean)
-		) {
-			// console.debug('merging states in the queue...');
-			jQueryExtendsAnObject(stateToUpdate, newStateOrFunctionToGenerateNewStateOrABoolean);
-		} else {
-			stateToUpdate.isForcedToUpdate = stateToUpdate.isForcedToUpdate ||
-				(typeof newStateOrFunctionToGenerateNewStateOrABoolean === 'undefined') ||
-				!!newStateOrFunctionToGenerateNewStateOrABoolean
-			;
-		}
-	}
 
-	// function _processAllQueuedStatesForUpdatesOfLayout(thisInstance) {
-	// 	while (privatePropertiesHost[this.__pToken].queuedStatesForUpdatesOfLayout.length > 0) {
-	// 		__processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance);
-	// 	}
-	// 	___updateAllDerivedStatesAccordingToNewState();
-	// }
 
-	function __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken];
+    function _mergeNewStateIntoModuleCurrentState(thisInstance, newState) {
+        mergeBIntoA(thisInstance.state, newState);
+    }
 
-		var newState = privateData.queuedStatesForUpdatesOfLayout.shift();
+    function ___detectChangesBetweenStates(thisInstance, state1, state2) {
+        ____detectChangesOnAllPropertiesAndRemoveThoseWontChangeFromState2(thisInstance, state1, state2);
+        ____processState2AccordingToPreservedProperties(thisInstance, state2);
+    }
 
-		___detectChangesBetweenStates(thisInstance, thisInstance.state, newState);
+    function ____detectChangesOnAllPropertiesAndRemoveThoseWontChangeFromState2(thisInstance, state1, state2) {
+        Object.keys(thisInstance.state).forEach(function (pName) {
+            var thisPropertyWillChange = _____detectChangeForAProperty(pName, state1, state2);
+            if (thisPropertyWillChange) {
+                _privateDataOf(thisInstance).state.somethingChanged = true;
+            } else {
+                delete state2[pName];
+            }
+        });
+    }
 
+    function _____detectChangeForAProperty(pName, object1, object2) {
+        var changed = false,
+            v1 = object1[pName],
+            v2 = object2[pName]
+            ;
 
-		// console.debug(
-		// 	'******** newState to update ********',
-		// 	'\n'+'updateLayout();', 
-		// 	'\n'+JSON.stringify(newState),
-		// 	'\n\n\n'
-		// );
+        if (v2 === undefined || v2 === null) {
+            return false;
+        } else if (v1 === undefined || v1 === null) {
+            changed = true;
+        } else if (v1 !== v2) {
+            changed = !(isNaN(v1) && isNaN(v2));
+        }
 
-		return newState;
-	}
+        if (changed) {
+            console.debug(
+                '"' + pName + '" will change\n',
+                indentAlignsToLogNameOfClass + 'from', v1, 'into', v2
+            );
+        }
 
+        return changed;
+    }
 
+    function ____processState2AccordingToPreservedProperties(thisInstance, state2) {
+        // At present, only the "reason" property
+        // which might be introduced by enabling/disabling hanging behaviour
+        // should be processed here
 
 
-	function ___mergeNewStateIntoModuleCurrentState(thisInstance, newState) {
-		jQueryExtendsAnObject(thisInstance.state, newState);
-	}
 
-	function ___detectChangesBetweenStates(thisInstance, state1, state2) {
-		____detectChangesOnAllPropertiesAndRemoveThoseWontChangeFromState2(thisInstance, state1, state2);
-		____processState2AccordingToPreservedProperties(thisInstance, state2);
-	}
+        if (!_privateDataOf(thisInstance).state.somethingChanged) return;
 
-	function ____detectChangesOnAllPropertiesAndRemoveThoseWontChangeFromState2(thisInstance, state1, state2) {
-		Object.keys(thisInstance.state).forEach(function (pName) {
-			var thisPropertyWillChange = _____detectChangeForAProperty(pName, state1, state2);
-			if (thisPropertyWillChange) {
-				privatePropertiesHost[thisInstance.__pToken].somethingChanged = true;
-			} else {
-				delete state2[pName];
-			}
-		});
-	}
 
-	function _____detectChangeForAProperty(pName, object1, object2) {
-		var changed = false,
-			v1 = object1[pName],
-			v2 = object2[pName]
-			;
 
-		if (v2 === undefined || v2 === null) {
-			return false;
-		} else if (v1 === undefined || v1 === null) {
-			changed = true;
-		} else if (v1 !== v2) {
-			changed = !(isNaN(v1) && isNaN(v2));
-		}
+        var pName1, logString1, logString2, logString3
+            // , rootElement = thisInstance.elements.root
+            ;
 
-		// if (changed) {
-		// 	console.debug(
-		// 		'changed "'+pName+'"\n',
-		// 		indentAlignsToLogNameOfClass+'from', v1, 'into', v2
-		// 	);
-		// }
 
-		return changed;
-	}
+        if (typeof state2.shouldEnable === 'boolean') {
+            pName1 = 'reason';
 
-	function ____processState2AccordingToPreservedProperties(thisInstance, state2) {
-		// At present, only the "reason" property
-		// which might be introduced by enabling/disabling hanging behaviour
-		// should be processed here
+            var willEnableHanging = state2.shouldEnable;
 
+            logString1 = willEnableHanging ? 'Enabling' : state2.shouldDestroyAfterDisabled ? 'DESTORYING' : 'DISABLING';
+            logString2 = 'behaviour...\n';
+            logString3 = state2[pName1]
+                // + '\n module rootElement:'
+                ;
 
+            logString3 = indentAlignsToLogNameOfClass.slice('Reason: '.length)
+                + 'Reason: '
+                + logString3.replace(/\n/g, '\n ' + indentAlignsToLogNameOfClass);
 
-		if (!privatePropertiesHost[thisInstance.__pToken].somethingChanged) return;
+            if (willEnableHanging) {
+                console.info(logString1, logString2, logString3
+                    // , rootElement
+                );
+            } else {
+                // In Google Chrome, "console.warn" now has a prefixing triangle to show calling stacks,
+                // so we nee one more space.
+                console.warn(logString1, logString2, ' ', logString3
+                    // , rootElement
+                );
+            }
+        }
+    }
 
 
 
-		var pName1, logString1, logString2, logString3
-			// , rootEl = thisInstance.elements.root
-		;
 
+    // You can also name this function as something like "flushQueuedTasks".
+    function updateLayout() {
+        var thisInstance = this,
+            privateData = _privateDataOf(thisInstance),
+            publicState = thisInstance.state,
+            statesQueue = privateData.updatingStatesQueue
+            ;
 
-		if (typeof state2.shouldEnableHanging === 'boolean') {
-			pName1 = 'reason';
 
-			var willEnableHanging = state2.shouldEnableHanging;
+        // if there are zero tasks in queue, simply do nothing
+        if (statesQueue.length < 1) {
+            // console.debug('No queued states at all. Nothing to do.');
+            return;
+        }
 
-			logString1 = willEnableHanging ? 'Enabling' : state2.shouldDestroyAfterDisabled ? 'DESTORYING' : 'DISABLING';
-			logString2 = 'behaviour...\n';
-			logString3 = state2[pName1]
-				// + '\n module rootEl:'
-			;
 
-			logString3 = indentAlignsToLogNameOfClass.slice('Reason: '.length)
-				+ 'Reason: '
-				+ logString3.replace(/\n/g, '\n '+indentAlignsToLogNameOfClass);
 
-			if (willEnableHanging) {
-				console.info(logString1, logString2, logString3
-					// , rootEl
-				);
-			} else {
-				// In Google Chrome, "console.warn" now has a prefixing triangle to show calling stacks,
-				// so we nee one more space.
-				console.warn(logString1, logString2, ' ', logString3
-					// , rootEl
-				);
-			}
-		}
-	}
+        // There are two possible policies at least.
+        // whenever get a chance to run queued tasks, run them all;
+        // or, whenever get a chance to run a task, run the oldest one.
+        // BUT,
+        // since at present I allow no more than one task,
+        // the two policies mentioned above turn to be the same finally.
 
+        // var newState = _processAllupdatingStatesQueue(thisInstance); // policy 1
+        var newState = __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance); // policy 2
 
 
 
-	// You can also name this function as something like "flushQueuedTasks".
-	function updateLayout() {
-		var thisInstance = this,
-			privateData = privatePropertiesHost[thisInstance.__pToken],
-			publicState = thisInstance.state,
-			statesQueue = privateData.queuedStatesForUpdatesOfLayout
-			;
 
+        var isForcedToUpdate = newState.isForcedToUpdate;
+        delete newState.isForcedToUpdate;
+        // console.log('updateLayout(): changes?', privateData.state.somethingChanged, '\t forced to?', isForcedToUpdate);
 
-		// if there are zero tasks in queue, simply do nothing
-		if (statesQueue.length < 1) {
-			// console.debug('No queued states at all. Nothing to do.');
-			return;
-		}
 
+        if (privateData.state.somethingChanged || isForcedToUpdate) {
+            // Should always merge, because extra properties like "reason" should be carried
+            _mergeNewStateIntoModuleCurrentState(thisInstance, newState);
 
+            // Now, do the work
+            _doUpdateLayout(thisInstance, isForcedToUpdate);
+        }
 
-		// There are two possible policies at least.
-		// whenever get a chance to run queued tasks, run them all;
-		// or, whenever get a chance to run a task, run the oldest one.
-		// BUT,
-		// since at present I allow no more than one task,
-		// the two policies mentioned above turn to be the same finally.
 
-		// var newState = _processAllQueuedStatesForUpdatesOfLayout(thisInstance); // policy 1
-		var newState = __processOneQueuedStateForAnUpdateOfLayoutInQueue(thisInstance); // policy 2
 
+        if (typeof newState.shouldEnable === 'boolean') {
+            // reason should be available for onEnabled/onDisabled events
+            _onEnabledOrDisabled(thisInstance, newState.shouldEnable);
 
+            // now delete the old reason
+            delete publicState.reason;
+        }
+    }
 
+    function _doUpdateLayout(thisInstance, isForcedToUpdate) {
+        var privateState = _privateDataOf(thisInstance).state,
+            publicState = thisInstance.state,
+            elements = thisInstance.elements
+            ;
 
-		var isForcedToUpdate = newState.isForcedToUpdate;
-		delete newState.isForcedToUpdate;
-		// console.log('updateLayout(): changes?', privateData.somethingChanged, '\t forced to?', isForcedToUpdate);
+        __evaluateHangingBoundries(thisInstance);
 
 
-		if (privateData.somethingChanged || isForcedToUpdate) {
-			// Should always merge, because extra properties like "reason" should be carried
-			___mergeNewStateIntoModuleCurrentState(thisInstance, newState);
+        var hangingTopOffset = publicState.contentTopToWindowTopInHangingLayouts,
+            topBoundaryToPageTop = window.scrollY + hangingTopOffset,
+            boundriesDistance = publicState.hangingLowerBoundaryToPageTop - publicState.contentTopToPageTopInFreeLayout,
+            requiredRoomInY = publicState.blockHeight + publicState.contentBottomToLowerBoundaryInHangingLayouts,
+            availableRoomInY = privateState.hangingLowerBoundaryToWindowTop - hangingTopOffset,
 
-			// Now, do the work
-			___doUpdateLayout(thisInstance, isForcedToUpdate);
-		}
 
+            // Might need compensation to some margins but not implemented yet
+            blockRootHeightWhenPinned = publicState.blockHeight;
 
 
-		if (typeof newState.shouldEnableHanging === 'boolean') {
-			// reason should be available for onEnabled/onDisabled events
-			_onEnabledOrDisabledHangingBehviour(thisInstance, newState.shouldEnableHanging);
+        var thereIsNoEnoughRoomForThisBlockToHang =
+            window.innerHeight < requiredRoomInY ||
+            (
+                // NaN means lower boundary doesn't available at all,
+                // so there is always enough room
+                !isNaN(boundriesDistance) &&
 
-			// now delete the old reason
-			delete publicState.reason;
-		}
-	}
+                boundriesDistance < requiredRoomInY
+            )
+            ;
 
-	function ___doUpdateLayout(thisInstance, isForcedToUpdate) {
-		var elements = thisInstance.elements,
-			privateData = privatePropertiesHost[thisInstance.__pToken],
-			publicState = thisInstance.state
-			;
 
-		_evaluateHangingBoundries(thisInstance);
 
+        // console.debug(
+        // 	'\n\t someting changed?', privateState.somethingChanged,
 
-		var hangingTopOffset = publicState.contentTopToWindowTopInHangingLayouts;
-		var topBoundryToPageTop = window.scrollY + hangingTopOffset;
-		var boundriesDistance = publicState.hangingLowerBoundryToPageTop - publicState.contentTopToPageTopInFreeLayout;
-		var requiredRoomInY = publicState.blockHeight + publicState.contentBottomDistanceToLowerBoundryInHangingLayouts;
-		var availableRoomInY = privateData.hangingLowerBoundryToWindowTop - hangingTopOffset;
+        // 	'\n to pin to top:',
+        // 	'\n\t window scroll y:', topBoundaryToPageTop,
+        // 	'\n\t free layout top:', publicState.contentTopToPageTopInFreeLayout,
+        // 	'\n\t window scroll y <= free layout top?', topBoundaryToPageTop <= publicState.contentTopToPageTopInFreeLayout,
 
+        // 	'\n to pin to bottom:',
+        // 	'\n\t lower boundary y:', privateState.hangingLowerBoundaryToWindowTop,
+        // 	'\n\t available y:', availableRoomInY,
+        // 	'\n\t required room y:', requiredRoomInY,
+        // 	'\n\t available y <= required room y?', availableRoomInY < requiredRoomInY
+        // );
 
-		// Might be compensation to some margins but not implemented yet
-		var blockRootHeightWhenPinned = publicState.blockHeight;
+        if (!publicState.shouldEnable ||
+            thereIsNoEnoughRoomForThisBlockToHang ||
+            topBoundaryToPageTop <= publicState.contentTopToPageTopInFreeLayout
+        ) {
+            ____switchLayoutToFree(thisInstance, isForcedToUpdate);
+        } else if (availableRoomInY <= requiredRoomInY) {
+            ____switchLayoutToContentPinningAboveLowerBoundary(
+                thisInstance,
+                isForcedToUpdate,
+                blockRootHeightWhenPinned,
+                boundriesDistance - requiredRoomInY + elements.root.clientTop + publicState.contentTopToRootTopInFreeLayout
+            );
+        } else {
+            ____switchLayoutToContentHangingToWindowTop(
+                thisInstance,
+                isForcedToUpdate,
+                blockRootHeightWhenPinned,
+                publicState.contentTopToWindowTopInHangingLayouts
+            );
+        }
 
 
-		var thereIsNoEnoughRoomForThisBlockToHang =
-			window.innerHeight < requiredRoomInY ||
-			(
-				// NaN means lower boundry doesn't available at all,
-				// so there is always enough room
-				!isNaN(boundriesDistance) &&
+        privateState.somethingChanged = false;
+        delete publicState.methodForSwitchingToCurrentLayout;
+    }
 
-				boundriesDistance < requiredRoomInY
-			)
-		;
+    function __evaluateHangingBoundries(thisInstance) {
+        // this function not only updates some state values,
+        // but also returns a newState object for other function to utilize
 
+        var publicState = thisInstance.state,
+            pName = 'hangingLowerBoundaryToPageTop',
+            refElement = publicState.lowerBoundaryRefElement,
+            refElementClientRect,
+            refNewYToWindowTop = NaN,
+            refNewYToPageTop = NaN
+            ;
 
+        if (refElement instanceof Node) {
+            refElementClientRect = refElement.getBoundingClientRect();
+            if (refElementClientRect.width === 0 && refElementClientRect.height === 0) {
+                console.warn('Reference element for deciding hanging lower boundary is invisible at this moment.');
+            } else {
+                refNewYToWindowTop = refElementClientRect[publicState.shouldUseBottomEdgeOfLowerBoundaryRefElement ? 'bottom' : 'top'];
+                refNewYToPageTop = refNewYToWindowTop + window.scrollY;
+            }
+        } else {
+            console.debug('Reference element for deciding hanging lower boundary is not provided.');
+            // do nothing, keeping NaN values
+        }
 
-		// console.debug(
-		// 	'\n\t someting changed?', privatePropertiesHost[thisInstance.__pToken].somethingChanged,
 
-		// 	'\n to pin to top:',
-		// 	'\n\t window scroll y:', topBoundryToPageTop,
-		// 	'\n\t free layout top:', publicState.contentTopToPageTopInFreeLayout,
-		// 	'\n\t window scroll y <= free layout top?', topBoundryToPageTop <= publicState.contentTopToPageTopInFreeLayout,
+        // values below might be NaN, as long as the refElement is not available any more or is hidden
+        _privateDataOf(thisInstance).state.hangingLowerBoundaryToWindowTop = refNewYToWindowTop;
+        publicState[pName] = refNewYToPageTop;
+    }
 
-		// 	'\n to pin to bottom:',
-		// 	'\n\t lower boundry y:', privateData.hangingLowerBoundryToWindowTop,
-		// 	'\n\t available y:', availableRoomInY,
-		// 	'\n\t required room y:', requiredRoomInY,
-		// 	'\n\t available y <= required room y?', availableRoomInY < requiredRoomInY
-		// );
+    function ____switchLayoutToFree(thisInstance, isForcedToUpdate, isForcedByAForcedRenew) {
+        var privateState = _privateDataOf(thisInstance).state,
+            layoutBeforeSwitchingWasExactlyFreeLayout = privateState.layouts.isFreeLayout // cache old state
+        ;
 
-		if (!publicState.shouldEnableHanging ||
-			thereIsNoEnoughRoomForThisBlockToHang ||
-			topBoundryToPageTop <= publicState.contentTopToPageTopInFreeLayout
-		) {
-			____switchLayoutToFree(thisInstance, isForcedToUpdate);
-		} else if (availableRoomInY <= requiredRoomInY) {
-			____switchLayoutToContentPinningAboveLowerBoundry(
-				thisInstance,
-				isForcedToUpdate,
-				blockRootHeightWhenPinned,
-				boundriesDistance - requiredRoomInY + elements.root.clientTop + publicState.contentTopToRootTopInFreeLayout
-			);
-		} else {
-			____switchLayoutToContentHangingToWindowTop(
-				thisInstance,
-				isForcedToUpdate,
-				blockRootHeightWhenPinned,
-				publicState.contentTopToWindowTopInHangingLayouts
-			);
-		}
+        var switchingWasSkipped =
+            _____commonActionsWhenSwitchingLayout(thisInstance, {
+                methodForSwitchingToCurrentLayout: ____switchLayoutToFree, // of cause, should be itself
+                isForcedToUpdate: isForcedToUpdate,
+                pNameOfLayoutMark: 'isFreeLayout',
+                pNameOfCssClass: isForcedByAForcedRenew ? 'layoutFreeTemporary' : 'layoutFree',
+                rootElHeight: '', // thisInstance.state.blockHeight + 'px'
+                contentElTop: ''
 
+                // , logStringWhenActuallySwitching: '*** switching content layout back to free layout...'
+                // , shouldDebug: true
+            });
 
-		privateData.somethingChanged = false;
-		delete publicState.methodForSwitchingToCurrentLayout;
-	}
 
-	function ____switchLayoutToFree(thisInstance, isForcedToUpdate, isForcedByAForcedRenew) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken],
-			layoutBeforeSwitchingWasExactlyFreeLayout = privateData.isInFreeLayout
-		;
 
-		var switchingWasSkipped =
-		_____commonActionsWhenSwitchingLayout(thisInstance, {
-			methodForSwitchingToCurrentLayout: ____switchLayoutToFree, // of cause, should be itself
-			isForcedToUpdate: isForcedToUpdate,
-			pNameOfLayoutMark: 'isInFreeLayout',
-			pNameOfCssClass: isForcedByAForcedRenew ? 'layoutFreeTemporary' : 'layoutFree',
-			rootElHeight: '', // thisInstance.state.blockHeight + 'px'
-			contentElTop: ''
+        if (!switchingWasSkipped) {
+            // if (isForcedByAForcedRenew) {
+            // 	console.debug('Forced to switch to free layout temporarily.');				
+            // }
 
-			// , logStringWhenActuallySwitching: '*** Swithing content layout back to free layout...'
-			// , shouldDebug: true
-		});
+            var shouldAlwaysRenewFreeLayoutInfo = thisInstance.options.shouldAlwaysRenewFreeLayoutInfo,
+                pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout' // for better minification
+            ;
 
+            if (
+                (shouldAlwaysRenewFreeLayoutInfo || privateState[pNameNextTimeRenewFreeLayout])
+                && !layoutBeforeSwitchingWasExactlyFreeLayout
+                // && !isForcedByAForcedRenew
+            ) {
+                // For the invocation below,
+                // as we can see the value of the "forcedToDoSo" argument is not <true>,
+                // so basically if there are no changes happened at all,
+                // the _doUpdateLayout() will not be called,
+                // thus the infinite looping invocation will not occur.
 
+                // Note that if this function is invoked for switching layout temporarily,
+                // this means the invokation was taken by the renewStateAndThenUpdate itself
+                // thus we should avoid infinite looping.
 
-		if (!switchingWasSkipped) {
-			// if (isForcedByAForcedRenew) {
-			// 	console.debug('Forced to switch to free layout temporarily.');				
-			// }
+                // console.debug('Returned to free layout. An opportunity to renew all related info.');
+                renewStateAndThenUpdate.call(thisInstance);
+            }
 
-			var shouldAlwaysRenewFreeLayoutInfo = thisInstance.options.shouldAlwaysRenewFreeLayoutInfo,
-				pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout'
-			;
+            privateState[pNameNextTimeRenewFreeLayout] = false;
+        }
 
-			if (
-				(shouldAlwaysRenewFreeLayoutInfo || privateData[pNameNextTimeRenewFreeLayout])
-				&& !layoutBeforeSwitchingWasExactlyFreeLayout
-				// && !isForcedByAForcedRenew
-			) {
-				// For the invocation below,
-				// as we can see the value of the "forcedToDoSo" argument is not <true>,
-				// so basically if there are no changes happened at all,
-				// the ___doUpdateLayout() will not be called,
-				// thus the infinite looping invocation will not occur.
-				
-				// Note that if this function is invoked for switching layout temporarily,
-				// this means the invokation was taken by the renewAllRelatedInfoAndThenUpdate itself
-				// thus we should avoid infinite looping.
 
-				// console.debug('Returned to free layout. An opportunity to renew all related info.');
-				renewAllRelatedInfoAndThenUpdate.call(thisInstance);
-			}
+        return switchingWasSkipped;
+    }
 
-			privateData[pNameNextTimeRenewFreeLayout] = false;
-		}
+    function ____switchLayoutToContentHangingToWindowTop(thisInstance, isForcedToUpdate, blockRootHeightWhenPinned, blockContentTopWhenPinned) {
+        // var switchingWasSkipped =
+        return _____commonActionsWhenSwitchingLayout(thisInstance, {
+            methodForSwitchingToCurrentLayout: ____switchLayoutToContentHangingToWindowTop, // of cause, should be itself
+            isForcedToUpdate: isForcedToUpdate,
+            pNameOfLayoutMark: 'isPinnedToWindowTop',
+            pNameOfCssClass: 'layoutPinToWindowTop',
+            rootElHeight: blockRootHeightWhenPinned + 'px',
+            contentElTop: blockContentTopWhenPinned + 'px'
 
+            // , logStringWhenActuallySwitching: '*** Hanging content to window top...'
+            // , shouldDebug: true
+        });
+    }
 
-		return switchingWasSkipped;
-	}
+    function ____switchLayoutToContentPinningAboveLowerBoundary(thisInstance, isForcedToUpdate, blockRootHeightWhenPinned, contentElNewTop) {
+        // var switchingWasSkipped =
+        return _____commonActionsWhenSwitchingLayout(thisInstance, {
+            methodForSwitchingToCurrentLayout: ____switchLayoutToContentPinningAboveLowerBoundary, // of cause, should be itself
+            isForcedToUpdate: isForcedToUpdate,
+            pNameOfLayoutMark: 'isPinnerToParentBottom',
+            pNameOfCssClass: 'layoutPinToParentBottom',
+            rootElHeight: blockRootHeightWhenPinned + 'px',
+            contentElTop: contentElNewTop + 'px'
 
-	function ____switchLayoutToContentHangingToWindowTop(thisInstance, isForcedToUpdate, blockRootHeightWhenPinned, blockContentTopWhenPinned) {
-		// var switchingWasSkipped =
-		return _____commonActionsWhenSwitchingLayout(thisInstance, {
-			methodForSwitchingToCurrentLayout: ____switchLayoutToContentHangingToWindowTop, // of cause, should be itself
-			isForcedToUpdate: isForcedToUpdate,
-			pNameOfLayoutMark: 'isPinnedToWindowTop',
-			pNameOfCssClass: 'layoutPinToWindowTop',
-			rootElHeight: blockRootHeightWhenPinned + 'px',
-			contentElTop: blockContentTopWhenPinned + 'px'
+            // , logStringWhenActuallySwitching: '*** Pinning content to follow lower boundary...'
+            // , shouldDebug: true
+        });
+    }
 
-			// , logStringWhenActuallySwitching: '*** Hanging content to window top...'
-			// , shouldDebug: true
-		});
-	}
+    function _____commonActionsWhenSwitchingLayout(thisInstance, options) {
+        // Returns true:  switching skipped;
+        // Returns false: switching proceeded.
 
-	function ____switchLayoutToContentPinningAboveLowerBoundry(thisInstance, isForcedToUpdate, blockRootHeightWhenPinned, contentElNewTop) {
-		// var switchingWasSkipped =
-		return _____commonActionsWhenSwitchingLayout(thisInstance, {
-			methodForSwitchingToCurrentLayout: ____switchLayoutToContentPinningAboveLowerBoundry, // of cause, should be itself
-			isForcedToUpdate: isForcedToUpdate,
-			pNameOfLayoutMark: 'isPinnerToParentBottom',
-			pNameOfCssClass: 'layoutPinToParentBottom',
-			rootElHeight: blockRootHeightWhenPinned + 'px',
-			contentElTop: contentElNewTop + 'px'
+        // options = options || {};
+        var privateState = _privateDataOf(thisInstance).state,
+            publicState = thisInstance.state,
+            elements = thisInstance.elements,
+            pNameOfLayoutMark = options.pNameOfLayoutMark,
+            pNameSaveMethod = 'methodForSwitchingToCurrentLayout'
+            , logInfo = options.logStringWhenActuallySwitching
+            ;
 
-			// , logStringWhenActuallySwitching: '*** Pinning content to follow lower boundry...'
-			// , shouldDebug: true
-		});
-	}
+        // if (options.shouldDebug) {
+        // console.debug(
+        // 	!privateState.layouts.[pNameOfLayoutMark] ? '\n\t'+pNameOfLayoutMark + ' ' + privateState.layouts.[pNameOfLayoutMark] : '',
+        // 	options.isForcedToUpdate ? '\n\tbecause is forced to? ' + options.isForcedToUpdate : '',
+        // 	privateState.somethingChanged ? '\n\t  because something changed? '+ privateState.somethingChanged : ''
+        // );
+        // }
+        if (privateState.layouts[pNameOfLayoutMark] && !privateState.somethingChanged && !options.isForcedToUpdate) return true;
+        options.shouldDebug && logInfo && console.info(logInfo);
 
-	function _____commonActionsWhenSwitchingLayout(thisInstance, options) {
-		// Returns true:  switching skipped;
-		// Returns false: switching proceeded.
+        publicState[pNameSaveMethod] = options[pNameSaveMethod];
 
-		// options = options || {};
-		var privateData = privatePropertiesHost[thisInstance.__pToken],
-			publicState = thisInstance.state,
-			elements = thisInstance.elements,
-			pNameOfLayoutMark = options.pNameOfLayoutMark,
-			pNameSaveMethod = 'methodForSwitchingToCurrentLayout'
-			, logInfo = options.logStringWhenActuallySwitching
-			;
+        ______soloLayoutStateTo(thisInstance, pNameOfLayoutMark);
+        ______soloCssClassTo(thisInstance, options.pNameOfCssClass);
 
-		// if (options.shouldDebug) {
-			// console.debug(
-			// 	!privateData[pNameOfLayoutMark] ? '\n\t'+pNameOfLayoutMark + ' ' + privateData[pNameOfLayoutMark] : '',
-			// 	options.isForcedToUpdate ? '\n\tbecause is forced to? ' + options.isForcedToUpdate : '',
-			// 	privateData.somethingChanged ? '\n\t  because something changed? '+ privateData.somethingChanged : ''
-			// );
-		// }
-		if (privateData[pNameOfLayoutMark] && !privateData.somethingChanged && !options.isForcedToUpdate) return true;
-		options.shouldDebug && logInfo && console.info(logInfo);
+        elements.hangingBlock.style.top = options.contentElTop;
+        elements.root.style.height = options.rootElHeight;
 
-		publicState[pNameSaveMethod] = options[pNameSaveMethod];
+        return false;
+    }
 
-		______soloLayoutStateTo(thisInstance, pNameOfLayoutMark);
-		______soloCssClassTo(thisInstance, options.pNameOfCssClass);
+    function ______soloLayoutStateTo(thisInstance, propertyKeyOfLayoutState) {
+        var layoutStates = _privateDataOf(thisInstance).state.layouts;
+        Object.keys(layoutStates).forEach(function (key) {
+            layoutStates[key] = propertyKeyOfLayoutState === key;
+        });
+    }
 
-		elements.chiefContent.style.top = options.contentElTop;
-		elements.root.style.height = options.rootElHeight;
+    function ______soloCssClassTo(thisInstance, propertyKeyOfCssClassToApply) {
+        var hangingBlockClassList = thisInstance.elements.hangingBlock.classList,
+            cssClassNameOptions = thisInstance.options.cssClassName
+        ;
 
-		return false;
-	}
-
-	function ______soloLayoutStateTo(thisInstance, propertyKeyOfLayoutState) {
-		var privateData = privatePropertiesHost[thisInstance.__pToken];
-		[
-			'isInFreeLayout',
-			'isPinnedToWindowTop',
-			'isPinnerToParentBottom'
-		].forEach(function (key) {
-			privateData[key] = propertyKeyOfLayoutState === key;
-		});
-	}
-
-	function ______soloCssClassTo(thisInstance, propertyKeyOfCssClassToApply) {
-		var chiefContentClassList = thisInstance.elements.chiefContent.classList,
-			cssClassNameOptions = thisInstance.options.cssClassName
-		;
-
-		for (var key in cssClassNameOptions) {
-			var cssClassName = cssClassNameOptions[key];
-			if (key === propertyKeyOfCssClassToApply) {
-				// console.debug('-----<<<< add css:', cssClassName);
-				cssClassName && chiefContentClassList.add   (cssClassName);
-			} else {
-				// console.debug('-----<<<< remove css:', cssClassName);
-				cssClassName && chiefContentClassList.remove(cssClassName);
-			}
-		}
-	}
+        for (var key in cssClassNameOptions) {
+            var cssClassName = cssClassNameOptions[key];
+            if (key === propertyKeyOfCssClassToApply) {
+                // console.debug('-----<<<< add css:', cssClassName);
+                cssClassName && hangingBlockClassList.add(cssClassName);
+            } else {
+                // console.debug('-----<<<< remove css:', cssClassName);
+                cssClassName && hangingBlockClassList.remove(cssClassName);
+            }
+        }
+    }
 });

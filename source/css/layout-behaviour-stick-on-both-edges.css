@@ -1,22 +1,27 @@
 .js-stick-on-both-edges-layout-hang-to-window-top,
-.js-stick-on-both-edges-layout-pin-to-lower-boundry {
+.js-stick-on-both-edges-layout-pin-to-lower-boundary {
 	z-index: 50;
 }
 
 /*
-	The "js-stick-on-both-edges-layout-temporary-state"
+	The "js-stick-on-both-edges-layout-temporarily-free"
 	is designed for avoiding box-shadow flashing
 	during swithing layout temporarily to free layout.
 */
-.js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-temporary-state,
-.js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-hang-to-window-top,
-.js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-pin-to-lower-boundry {
-	box-shadow: 0 5px 20px rgba(0, 0, 0, 0.19);
+.js-stick-on-both-edges-layout-free,
+.js-stick-on-both-edges-layout-temporarily-free,
+.js-stick-on-both-edges-layout-hang-to-window-top,
+.js-stick-on-both-edges-layout-pin-to-lower-boundary {
 	transition: box-shadow 0.45s ease-out;
+}
+.js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-temporarily-free,
+.js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-hang-to-window-top,
+.js-stick-on-both-edges-drop-shadow.js-stick-on-both-edges-layout-pin-to-lower-boundary {
+	box-shadow: 0 5px 20px rgba(0, 0, 0, 0.19);
 }
 .js-stick-on-both-edges-layout-hang-to-window-top {
 	position: fixed !important;
 }
-.js-stick-on-both-edges-layout-pin-to-lower-boundry {
+.js-stick-on-both-edges-layout-pin-to-lower-boundary {
 	position: absolute !important;   
 }
