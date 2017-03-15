@@ -605,11 +605,9 @@
 	function startIntervalOfRenewingState() {
 		_startOrClearIntervalOfRenewingState(this, true);
 	}
-
 	function clearIntervalOfRenewingState() {
 		_startOrClearIntervalOfRenewingState(this, false);
 	}
-
 	function _startOrClearIntervalOfRenewingState(thisInstance, shouldStart) {
 		var privateData = _privateDataOf(thisInstance),
 			privateState = privateData.state,
@@ -638,17 +636,15 @@
 			privateState[pNameForIndex] = NaN;			
 		}
 	}
-
 	function _doIntervalOfRenewingState(thisInstance) {
 		var shouldCancel = _dispatchAnEvent(thisInstance, 'onIntervalBegin');
 
 		if (!shouldCancel) {
-			_renewContentHeight.call(thisInstance, true);
-			_renewContentTopToRootTopInFreeLayout.call(thisInstance, true);
-			_renewContentTopToPageTopInFreeLayout.call(thisInstance, true);
+			renewState.call(thisInstance, null, true);
 		}
 
 		// even if this interval is cancelled, still call the onIntervalEnd event
+		// need more thinking
 		_dispatchAnEvent(thisInstance, 'onIntervalEnd');
 	}
 
