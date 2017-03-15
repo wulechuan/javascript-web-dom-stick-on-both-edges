@@ -7,10 +7,10 @@ const folderOfCssFiles = 'css';
 const folderOfJsFiles = 'js';
 
 
-let shouldMinifyJsFile = false;
+let shouldMinifyJsFile = true;
 let shouldStripConsoleLoggingsFromJsFiles = true;
 let shouldGenerateMapFilesForJs = true;
-let shouldGenerateMapFilesForCss = false;
+let shouldGenerateMapFilesForCss = true;
 
 
 
