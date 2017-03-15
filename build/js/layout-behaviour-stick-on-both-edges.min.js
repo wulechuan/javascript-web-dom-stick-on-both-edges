@@ -206,7 +206,7 @@
 
 				// helpers
 				somethingChanged: false,
-				hangingLowerBoundaryToWindowTop: NaN, // Saving this constantly changed value simply for avoiding evalutation of it outside _evaluateHangingBoundries().
+				hangingLowerBoundaryToWindowTop: NaN, // Saving this constantly changed value simply for avoiding evalutation of it outside __evaluateHangingBoundries().
 				shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout: false,
 
 
@@ -268,9 +268,6 @@
 
 		thisInstance.renewState = renewState;
 		thisInstance.renewStateAndThenUpdate = renewStateAndThenUpdate;
-		// thisInstance.renewContentTopToPageTopInFreeLayout = renewContentTopToPageTopInFreeLayout;
-		// thisInstance.renewContentHeight = renewContentHeight;
-		// thisInstance.renewContentTopToRootTopInFreeLayout = renewContentTopToRootTopInFreeLayout;
 		// thisInstance.setContentTopToWindowTopInHangingLayouts = setContentTopToWindowTopInHangingLayouts;
 		// thisInstance.setContentBottomToLowerBoundary = setContentBottomToLowerBoundary;
 		// thisInstance.setLowerBoundaryRefElement = setLowerBoundaryRefElement;
@@ -347,9 +344,9 @@
 
 		// Even without a task in queue, we still need to update layout constantly.
 		// For example when user is scrolliing the page, nothing about the important measurements changed
-		// but obviously the ___doUpdateLayout should be invoked still.
+		// but obviously the _doUpdateLayout should be invoked still.
 		boundFunctions.doUpdateLayout = (function (/*event*/) {
-			___doUpdateLayout(thisInstance);
+			_doUpdateLayout(thisInstance);
 		}).bind(thisInstance);
 
 
@@ -646,10 +643,9 @@
 		var shouldCancel = _dispatchAnEvent(thisInstance, 'onIntervalBegin');
 
 		if (!shouldCancel) {
-			renewContentHeight.call(thisInstance, true);
-			_renewDerivedLowerBoundaryValue(thisInstance, true);
-			renewContentTopToRootTopInFreeLayout.call(thisInstance, true);
-			renewContentTopToPageTopInFreeLayout.call(thisInstance, true);
+			_renewContentHeight.call(thisInstance, true);
+			_renewContentTopToRootTopInFreeLayout.call(thisInstance, true);
+			_renewContentTopToPageTopInFreeLayout.call(thisInstance, true);
 		}
 
 		// even if this interval is cancelled, still call the onIntervalEnd event
@@ -708,10 +704,6 @@
 
 	// renew all state but NOT the global switch, aka the this.state.shouldEnable
 	function renewState(options, isForcedToRenew) {
-		var didntRequestAnUpdateForLowerBoundaryUsedEdge = true;
-
-
-
 		// actions that relies on arguments
 		if (typeof options === 'object' && options) {
 			setContentTopToWindowTopInHangingLayouts.call(this,
@@ -724,114 +716,25 @@
 				isForcedToRenew
 			);
 
-			didntRequestAnUpdateForLowerBoundaryUsedEdge = setLowerBoundaryRefElement.call(this,
+			var edgeUsageHasBeenDecidedViaNewRefElement = setLowerBoundaryRefElement.call(this,
 				options.lowerBoundaryRefElement,
 				isForcedToRenew
 			);
 
-			didntRequestAnUpdateForLowerBoundaryUsedEdge = setUsedEdgeOfLowerBoundaryRefElement.call(this,
-				options.shouldUseBottomEdgeOfLowerBoundaryRefElement,
-				isForcedToRenew
-			);
+			if (!edgeUsageHasBeenDecidedViaNewRefElement) {
+				setUsedEdgeOfLowerBoundaryRefElement.call(this,
+					options.shouldUseBottomEdgeOfLowerBoundaryRefElement,
+					isForcedToRenew
+				);
+			}
 		}
 
 
 
 		// actions that need no arguments
-
-		if (didntRequestAnUpdateForLowerBoundaryUsedEdge) {
-			_renewDerivedLowerBoundaryValue(this, isForcedToRenew);
-		} else {
-			// setUsedEdgeOfLowerBoundaryRefElement will implicitly call _renewDerivedLowerBoundaryValue
-		}
-
-		renewContentHeight.call(this, isForcedToRenew);
-		renewContentTopToRootTopInFreeLayout.call(this, isForcedToRenew);
-		renewContentTopToPageTopInFreeLayout.call(this, isForcedToRenew);
-	}
-
-
-
-	function renewContentHeight(isForcedToRenew) {
-		var newState = {
-			blockHeight: this.elements.hangingBlock.offsetHeight
-		};
-
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
-
-		requestLayoutUpdate.call(this, newState);
-	}
-
-	function renewContentTopToRootTopInFreeLayout(isForcedToRenew) {
-		var newState = {},
-			pName = 'contentTopToRootTopInFreeLayout'
-		;
-
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
-
-		newState[pName] = this.elements.hangingBlock.offsetTop;
-
-		requestLayoutUpdate.call(this, newState);
-	}
-
-	function renewContentTopToPageTopInFreeLayout(isForcedToRenewWithoutWaitingForLayoutToSwitch) {
-		var thisInstance = this,
-			privateState = _privateDataOf(thisInstance).state,
-			shouldDoRenew = true,
-			functionForSwitchingToCorrectLayout,
-			forcedImmediateSwitchingWasSkipped = true,
-			pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout'
-			;
-
-		if (!privateState.layouts.isFreeLayout) {
-			if (isForcedToRenewWithoutWaitingForLayoutToSwitch) {
-				privateState[pNameNextTimeRenewFreeLayout] = false;
-				functionForSwitchingToCorrectLayout = thisInstance.state.methodForSwitchingToCurrentLayout;
-				forcedImmediateSwitchingWasSkipped = ____switchLayoutToFree(
-					thisInstance,
-					isForcedToRenewWithoutWaitingForLayoutToSwitch,
-					true
-				);
-			} else {
-				// console.debug('Action holded for a later time.');
-				shouldDoRenew = false;
-				privateState[pNameNextTimeRenewFreeLayout] = true;
-			}
-		}
-
-		if (shouldDoRenew) {
-			_doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenewWithoutWaitingForLayoutToSwitch);
-		}
-
-		if (
-			!forcedImmediateSwitchingWasSkipped
-			&& typeof functionForSwitchingToCorrectLayout === 'function'
-		) {
-			// console.debug('Restore layout after switching to free layout temporarily.');
-			functionForSwitchingToCorrectLayout(thisInstance);
-		}
-	}
-
-	function _doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenew) {
-		var contentClientRect = thisInstance.elements.hangingBlock.getBoundingClientRect();
-
-		if (contentClientRect.width === 0 && contentClientRect.height === 0) {
-			console.warn(
-				'\n\t Cannot evaluate hangingBlockElement\'s "boundingClientRect"!',
-				'\n\t The chief content elment might not be visible at the moment.'
-			);
-			return;
-		}
-
-
-		var newState = {};
-
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
-
-		newState.contentTopToPageTopInFreeLayout = contentClientRect.top + window.scrollY;
-		// console.log('*** newState: content top to page:', newState.contentTopToPageTopInFreeLayout, '***');
-
-		requestLayoutUpdate.call(thisInstance, newState);
+		_renewContentHeight.call(this, isForcedToRenew);
+		_renewContentTopToRootTopInFreeLayout.call(this, isForcedToRenew);
+		_renewContentTopToPageTopInFreeLayout.call(this, isForcedToRenew);
 	}
 
 
@@ -887,24 +790,31 @@
             }
         }
 
+
+		var edgeUsageHasBeenDecidedHereInsideThisFunction = false;
+
         if (newElementIsValid && elements[pName] !== newElement) {
             elements[pName] = newElement;
 			newState[pName+'Element'] = newElement;
 
             if (domAIsChildOfB(rootElement, newElement)) {
-				setUsedEdgeOfLowerBoundaryRefElement.call(this, true, isForcedToRenew);	
-				// here return false means
+				setUsedEdgeOfLowerBoundaryRefElement.call(this, true, isForcedToRenew);
+
+				// Here the false value means
 				// the "shouldUseBottomEdgeOfLowerBoundaryRefElement"
 				// has been decided here (the above line),
 				// so the setUsedEdgeOfLowerBoundaryRefElement()
-				// should NOT be invoked inside the renewState() again
-                return false;
+				// should NOT be invoked inside the renewState() again,
+				// thus the input argument for "shouldUseBottomEdgeOfLowerBoundaryRefElement"
+				// will be ignored if any.
+                edgeUsageHasBeenDecidedHereInsideThisFunction = true;
             }
 
-            return true; // means the "shouldUseBottomEdgeOfLowerBoundaryRefElement" has NOT been changed here
+			requestLayoutUpdate.call(this, newState);
+
         }
 
-        return true; // nothing of the public state changed inside this function
+		return edgeUsageHasBeenDecidedHereInsideThisFunction;
     }
 
 	function setUsedEdgeOfLowerBoundaryRefElement(shouldUseBottomEdgeOfLowerBoundaryRefElement, isForcedToRenew) {
@@ -912,70 +822,109 @@
 			elements = thisInstance.elements
 		;
 
-		if (domAIsChildOfB(elements.root, elements.lowerBoundaryRef) ||
-			shouldUseBottomEdgeOfLowerBoundaryRefElement === null ||
-			shouldUseBottomEdgeOfLowerBoundaryRefElement === undefined
-		) {
-			// Should always use 'bottom'
-			return true;
+		if (typeof shouldUseBottomEdgeOfLowerBoundaryRefElement !== 'boolean') {
+			return;
 		}
 
-		// update public state directly here,
-		// to ensure _renewDerivedLowerBoundaryValue execute correctly
-		// but need more thinking
-		thisInstance.state.shouldUseBottomEdgeOfLowerBoundaryRefElement = !!shouldUseBottomEdgeOfLowerBoundaryRefElement;
+		if (domAIsChildOfB(elements.root, elements.lowerBoundaryRef)) {
+			// Should always use 'bottom'
+			return;
+		}
 
 		var newState = {};
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		_renewDerivedLowerBoundaryValue(this, isForcedToRenew);
-
-		return false;
-	}
-
-	function _renewDerivedLowerBoundaryValue(thisInstance, isForcedToRenew) {
-		var newState = _evaluateHangingBoundries(thisInstance);
-
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
+		newState.shouldUseBottomEdgeOfLowerBoundaryRefElement = !!shouldUseBottomEdgeOfLowerBoundaryRefElement;
 
 		requestLayoutUpdate.call(thisInstance, newState);
 	}
 
-	function _evaluateHangingBoundries(thisInstance) {
-		// this function not only updates some state values,
-		// but also returns a newState object for other function to utilize
 
-		var publicState = thisInstance.state,
-			pName = 'hangingLowerBoundaryToPageTop',
-            refElement = thisInstance.elements[pName],
-            refElementClientRect,
-			refNewYToWindowTop = NaN,
-			refNewYToPageTop = NaN
+
+	function _renewContentHeight(isForcedToRenew) {
+		var newState = {
+			blockHeight: this.elements.hangingBlock.offsetHeight
+		};
+
+		if (isForcedToRenew) newState.isForcedToUpdate = true;
+
+		requestLayoutUpdate.call(this, newState);
+	}
+
+	function _renewContentTopToRootTopInFreeLayout(isForcedToRenew) {
+		var newState = {},
+			pName = 'contentTopToRootTopInFreeLayout'
+		;
+
+		if (isForcedToRenew) newState.isForcedToUpdate = true;
+
+		newState[pName] = this.elements.hangingBlock.offsetTop;
+
+		requestLayoutUpdate.call(this, newState);
+	}
+
+	function _renewContentTopToPageTopInFreeLayout(isForcedToRenewWithoutWaitingForLayoutToSwitch) {
+		var thisInstance = this,
+			privateState = _privateDataOf(thisInstance).state,
+			shouldDoRenew = true,
+			functionForSwitchingToCorrectLayout,
+			forcedImmediateSwitchingWasSkipped = true,
+			pNameNextTimeRenewFreeLayout = 'shouldRenewFreeLayoutInfoNextTimeEnteringFreeLayout'
 			;
 
-        if (refElement instanceof Node) {
-            refElementClientRect = refElement.getBoundingClientRect();
-            if (refElementClientRect.width === 0 && refElementClientRect.height === 0) {
-                console.warn('Reference element for deciding hanging lower boundary is invisible at this moment.');
-            } else {
-                refNewYToWindowTop = refElementClientRect[publicState.shouldUseBottomEdgeOfLowerBoundaryRefElement ? 'bottom' : 'top'];
-                refNewYToPageTop = refNewYToWindowTop + window.scrollY;
-            }
-        } else {
-            // do nothing, keeping NaN values
-        }
+		if (!privateState.layouts.isFreeLayout) {
+			if (isForcedToRenewWithoutWaitingForLayoutToSwitch) {
+				privateState[pNameNextTimeRenewFreeLayout] = false;
+				functionForSwitchingToCorrectLayout = thisInstance.state.methodForSwitchingToCurrentLayout;
+				forcedImmediateSwitchingWasSkipped = ____switchLayoutToFree(
+					thisInstance,
+					isForcedToRenewWithoutWaitingForLayoutToSwitch,
+					true
+				);
+			} else {
+				// console.debug('Action holded for a later time.');
+				shouldDoRenew = false;
+				privateState[pNameNextTimeRenewFreeLayout] = true;
+			}
+		}
 
+		if (shouldDoRenew) {
+			__doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenewWithoutWaitingForLayoutToSwitch);
+		}
 
-		// values below might be NaN, as long as the refElement is not available any more or is hidden
-		_privateDataOf(thisInstance).state.hangingLowerBoundaryToWindowTop = refNewYToWindowTop;
-		publicState[pName] = refNewYToPageTop;
+		if (
+			!forcedImmediateSwitchingWasSkipped
+			&& typeof functionForSwitchingToCorrectLayout === 'function'
+		) {
+			// console.debug('Restore layout after switching to free layout temporarily.');
+			functionForSwitchingToCorrectLayout(thisInstance);
+		}
+	}
+
+	function __doRenewContentTopToPageTopInFreeLayout(thisInstance, isForcedToRenew) {
+		var contentClientRect = thisInstance.elements.hangingBlock.getBoundingClientRect();
+
+		if (contentClientRect.width === 0 && contentClientRect.height === 0) {
+			console.warn(
+				'\n\t Cannot evaluate hangingBlockElement\'s "boundingClientRect"!',
+				'\n\t The chief content elment might not be visible at the moment.'
+			);
+			return;
+		}
 
 
 		var newState = {};
-		newState[pName] = refNewYToPageTop;
-		return newState;
+
+		if (isForcedToRenew) newState.isForcedToUpdate = true;
+
+		newState.contentTopToPageTopInFreeLayout = contentClientRect.top + window.scrollY;
+		// console.log('*** newState: content top to page:', newState.contentTopToPageTopInFreeLayout, '***');
+
+		requestLayoutUpdate.call(thisInstance, newState);
 	}
+
+
 
 
 
@@ -1040,7 +989,7 @@
 
 
 
-	function ___mergeNewStateIntoModuleCurrentState(thisInstance, newState) {
+	function _mergeNewStateIntoModuleCurrentState(thisInstance, newState) {
 		mergeBIntoA(thisInstance.state, newState);
 	}
 
@@ -1074,12 +1023,12 @@
 			changed = !(isNaN(v1) && isNaN(v2));
 		}
 
-		// if (changed) {
-		// 	console.debug(
-		// 		'changed "'+pName+'"\n',
-		// 		indentAlignsToLogNameOfClass+'from', v1, 'into', v2
-		// 	);
-		// }
+		if (changed) {
+			console.debug(
+				'"'+pName+'" will change\n',
+				indentAlignsToLogNameOfClass+'from', v1, 'into', v2
+			);
+		}
 
 		return changed;
 	}
@@ -1169,10 +1118,10 @@
 
 		if (privateData.state.somethingChanged || isForcedToUpdate) {
 			// Should always merge, because extra properties like "reason" should be carried
-			___mergeNewStateIntoModuleCurrentState(thisInstance, newState);
+			_mergeNewStateIntoModuleCurrentState(thisInstance, newState);
 
 			// Now, do the work
-			___doUpdateLayout(thisInstance, isForcedToUpdate);
+			_doUpdateLayout(thisInstance, isForcedToUpdate);
 		}
 
 
@@ -1186,13 +1135,13 @@
 		}
 	}
 
-	function ___doUpdateLayout(thisInstance, isForcedToUpdate) {
+	function _doUpdateLayout(thisInstance, isForcedToUpdate) {
 		var privateState = _privateDataOf(thisInstance).state,
 			publicState = thisInstance.state,
 			elements = thisInstance.elements
 			;
 
-		_evaluateHangingBoundries(thisInstance);
+		__evaluateHangingBoundries(thisInstance);
 
 
 		var hangingTopOffset = publicState.contentTopToWindowTopInHangingLayouts,
@@ -1260,6 +1209,41 @@
 		delete publicState.methodForSwitchingToCurrentLayout;
 	}
 
+	function __evaluateHangingBoundries(thisInstance) {
+		// this function not only updates some state values,
+		// but also returns a newState object for other function to utilize
+
+		var publicState = thisInstance.state,
+			pName = 'hangingLowerBoundaryToPageTop',
+            refElement = thisInstance.elements[pName],
+            refElementClientRect,
+			refNewYToWindowTop = NaN,
+			refNewYToPageTop = NaN
+			;
+
+        if (refElement instanceof Node) {
+            refElementClientRect = refElement.getBoundingClientRect();
+            if (refElementClientRect.width === 0 && refElementClientRect.height === 0) {
+                console.warn('Reference element for deciding hanging lower boundary is invisible at this moment.');
+            } else {
+                refNewYToWindowTop = refElementClientRect[publicState.shouldUseBottomEdgeOfLowerBoundaryRefElement ? 'bottom' : 'top'];
+                refNewYToPageTop = refNewYToWindowTop + window.scrollY;
+            }
+        } else {
+            // do nothing, keeping NaN values
+        }
+
+
+		// values below might be NaN, as long as the refElement is not available any more or is hidden
+		_privateDataOf(thisInstance).state.hangingLowerBoundaryToWindowTop = refNewYToWindowTop;
+		publicState[pName] = refNewYToPageTop;
+
+
+		var newState = {};
+		newState[pName] = refNewYToPageTop;
+		return newState;
+	}
+
 	function ____switchLayoutToFree(thisInstance, isForcedToUpdate, isForcedByAForcedRenew) {
 		var privateState = _privateDataOf(thisInstance).state,
 			layoutBeforeSwitchingWasExactlyFreeLayout = privateState.layouts.isFreeLayout // cache old state
@@ -1297,7 +1281,7 @@
 				// For the invocation below,
 				// as we can see the value of the "forcedToDoSo" argument is not <true>,
 				// so basically if there are no changes happened at all,
-				// the ___doUpdateLayout() will not be called,
+				// the _doUpdateLayout() will not be called,
 				// thus the infinite looping invocation will not occur.
 				
 				// Note that if this function is invoked for switching layout temporarily,
