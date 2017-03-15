@@ -147,6 +147,7 @@
 			contentTopToWindowTopInHangingLayouts: 0,
 			contentBottomToLowerBoundaryInHangingLayouts: 15,
 
+			lowerBoundaryRefElement: null, // exactly the same as this.elements.lowerBoundaryRef
 			shouldUseBottomEdgeOfLowerBoundaryRefElement: true,
 			hangingLowerBoundaryToPageTop: NaN
 
@@ -265,14 +266,15 @@
 
 		thisInstance.destroy = destroy;
 
-		thisInstance.renewStateAndThenUpdate = renewStateAndThenUpdate;
 		thisInstance.renewState = renewState;
+		thisInstance.renewStateAndThenUpdate = renewStateAndThenUpdate;
 		// thisInstance.renewContentTopToPageTopInFreeLayout = renewContentTopToPageTopInFreeLayout;
 		// thisInstance.renewContentHeight = renewContentHeight;
 		// thisInstance.renewContentTopToRootTopInFreeLayout = renewContentTopToRootTopInFreeLayout;
-		thisInstance.renewContentTopToWindowTopInHangingLayouts = renewContentTopToWindowTopInHangingLayouts;
-		thisInstance.renewHangingLowerBoundaryValue = renewHangingLowerBoundaryValue;
-		thisInstance.renewUsedEdgeOfLowerBoundaryRefElement = renewUsedEdgeOfLowerBoundaryRefElement;
+		// thisInstance.setContentTopToWindowTopInHangingLayouts = setContentTopToWindowTopInHangingLayouts;
+		// thisInstance.setContentBottomToLowerBoundary = setContentBottomToLowerBoundary;
+		// thisInstance.setLowerBoundaryRefElement = setLowerBoundaryRefElement;
+		// thisInstance.setUsedEdgeOfLowerBoundaryRefElement = setUsedEdgeOfLowerBoundaryRefElement;
 
 
 		// a very traditional way to safely update related info
@@ -645,7 +647,7 @@
 
 		if (!shouldCancel) {
 			renewContentHeight.call(thisInstance, true);
-			renewHangingLowerBoundaryValue.call(thisInstance, true);
+			_renewDerivedLowerBoundaryValue(thisInstance, true);
 			renewContentTopToRootTopInFreeLayout.call(thisInstance, true);
 			renewContentTopToPageTopInFreeLayout.call(thisInstance, true);
 		}
@@ -712,22 +714,22 @@
 
 		// actions that relies on arguments
 		if (typeof options === 'object' && options) {
-			renewContentTopToWindowTopInHangingLayouts.call(this,
+			setContentTopToWindowTopInHangingLayouts.call(this,
 				options.contentTopToWindowTopInHangingLayouts,
 				isForcedToRenew
 			);
 
-			renewContentBottomDistanceToLowerBoundary.call(this,
+			setContentBottomToLowerBoundary.call(this,
 				options.contentBottomToLowerBoundaryInHangingLayouts,
 				isForcedToRenew
 			);
 
-			didntRequestAnUpdateForLowerBoundaryUsedEdge = renewLowerBoundaryRefElement.call(this,
+			didntRequestAnUpdateForLowerBoundaryUsedEdge = setLowerBoundaryRefElement.call(this,
 				options.lowerBoundaryRefElement,
 				isForcedToRenew
 			);
 
-			didntRequestAnUpdateForLowerBoundaryUsedEdge = renewUsedEdgeOfLowerBoundaryRefElement.call(this,
+			didntRequestAnUpdateForLowerBoundaryUsedEdge = setUsedEdgeOfLowerBoundaryRefElement.call(this,
 				options.shouldUseBottomEdgeOfLowerBoundaryRefElement,
 				isForcedToRenew
 			);
@@ -738,15 +740,17 @@
 		// actions that need no arguments
 
 		if (didntRequestAnUpdateForLowerBoundaryUsedEdge) {
-			renewHangingLowerBoundaryValue.call(this, isForcedToRenew);
+			_renewDerivedLowerBoundaryValue(this, isForcedToRenew);
 		} else {
-			// renewUsedEdgeOfLowerBoundaryRefElement will implicitly call renewHangingLowerBoundaryValue
+			// setUsedEdgeOfLowerBoundaryRefElement will implicitly call _renewDerivedLowerBoundaryValue
 		}
 
 		renewContentHeight.call(this, isForcedToRenew);
 		renewContentTopToRootTopInFreeLayout.call(this, isForcedToRenew);
 		renewContentTopToPageTopInFreeLayout.call(this, isForcedToRenew);
 	}
+
+
 
 	function renewContentHeight(isForcedToRenew) {
 		var newState = {
@@ -769,72 +773,6 @@
 
 		requestLayoutUpdate.call(this, newState);
 	}
-
-	function renewContentTopToWindowTopInHangingLayouts(newExtraSpace, isForcedToRenew) {
-		var newState = {};
-
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
-
-		newExtraSpace = parseFloat(newExtraSpace);
-		if (!isNaN(newExtraSpace)) {
-			newState.contentTopToWindowTopInHangingLayouts = newExtraSpace;
-		}
-
-		requestLayoutUpdate.call(this, newState);
-	}
-
-    function renewLowerBoundaryRefElement(newElement, isForcedToRenew) {
-		var newState = {};
-
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
-
-        var elements = this.elements,
-            rootElement = elements.root,
-            pName = 'lowerBoundaryRef',
-            newElementIsValid = true,
-            logString1 = 'The lower boundary ref element',
-            logString2 = 'This doesn\'t make any sense. Ref element NOT renewed.'
-            ;
-
-        if (newElement !== null) { // null value is acceptable for removing lower boundary ref element
-            if (!(newElement instanceof Node)) {
-                newElementIsValid = false;
-            } else if (domAIsChildOfB(newElement, rootElement)) {
-                newElementIsValid = false;
-                console.warn(logString1, 'is a descendant of the root element.', logString2);
-            } else if (newElement === rootElement) {
-                newElementIsValid = false;
-                console.warn(logString1, 'is the same dom as the root element.', logString2);                
-            }
-        }
-
-        if (newElementIsValid && elements[pName] !== newElement) {
-            elements[pName] = newElement;
-
-            if (domAIsChildOfB(rootElement, newElement)) {
-                this.state.shouldUseBottomEdgeOfLowerBoundaryRefElement = true;
-                return false; // means the "shouldUseBottomEdgeOfLowerBoundaryRefElement" has been changed here
-            }
-
-            return true; // means the "shouldUseBottomEdgeOfLowerBoundaryRefElement" has NOT been changed here
-        }
-
-        return true; // nothing of the public state changed inside this function
-    }
-
-	function renewContentBottomDistanceToLowerBoundary(newExtraSpace, isForcedToRenew) {
-		var newState = {};
-
-		if (isForcedToRenew) newState.isForcedToUpdate = true;
-
-		newExtraSpace = parseFloat(newExtraSpace);
-		if (!isNaN(newExtraSpace)) {
-			newState.contentBottomToLowerBoundaryInHangingLayouts = newExtraSpace;
-		}
-
-		requestLayoutUpdate.call(this, newState);
-	}
-
 
 	function renewContentTopToPageTopInFreeLayout(isForcedToRenewWithoutWaitingForLayoutToSwitch) {
 		var thisInstance = this,
@@ -896,7 +834,80 @@
 		requestLayoutUpdate.call(thisInstance, newState);
 	}
 
-	function renewUsedEdgeOfLowerBoundaryRefElement(shouldUseBottomEdgeOfLowerBoundaryRefElement, isForcedToRenew) {
+
+
+	function setContentTopToWindowTopInHangingLayouts(newExtraSpace, isForcedToRenew) {
+		var newState = {};
+
+		if (isForcedToRenew) newState.isForcedToUpdate = true;
+
+		newExtraSpace = parseFloat(newExtraSpace);
+		if (!isNaN(newExtraSpace)) {
+			newState.contentTopToWindowTopInHangingLayouts = newExtraSpace;
+		}
+
+		requestLayoutUpdate.call(this, newState);
+	}
+
+	function setContentBottomToLowerBoundary(newExtraSpace, isForcedToRenew) {
+		var newState = {};
+
+		if (isForcedToRenew) newState.isForcedToUpdate = true;
+
+		newExtraSpace = parseFloat(newExtraSpace);
+		if (!isNaN(newExtraSpace)) {
+			newState.contentBottomToLowerBoundaryInHangingLayouts = newExtraSpace;
+		}
+
+		requestLayoutUpdate.call(this, newState);
+	}
+
+    function setLowerBoundaryRefElement(newElement, isForcedToRenew) {
+		var newState = {};
+
+		if (isForcedToRenew) newState.isForcedToUpdate = true;
+
+        var elements = this.elements,
+            rootElement = elements.root,
+            pName = 'lowerBoundaryRef',
+            newElementIsValid = true,
+            logString1 = 'The lower boundary ref element',
+            logString2 = 'This doesn\'t make any sense. Ref element NOT renewed.'
+            ;
+
+        if (newElement !== null) { // null value is acceptable for removing lower boundary ref element
+            if (!(newElement instanceof Node)) {
+                newElementIsValid = false;
+            } else if (domAIsChildOfB(newElement, rootElement)) {
+                newElementIsValid = false;
+                console.warn(logString1, 'is a descendant of the root element.', logString2);
+            } else if (newElement === rootElement) {
+                newElementIsValid = false;
+                console.warn(logString1, 'is the same dom as the root element.', logString2);                
+            }
+        }
+
+        if (newElementIsValid && elements[pName] !== newElement) {
+            elements[pName] = newElement;
+			newState[pName+'Element'] = newElement;
+
+            if (domAIsChildOfB(rootElement, newElement)) {
+				setUsedEdgeOfLowerBoundaryRefElement.call(this, true, isForcedToRenew);	
+				// here return false means
+				// the "shouldUseBottomEdgeOfLowerBoundaryRefElement"
+				// has been decided here (the above line),
+				// so the setUsedEdgeOfLowerBoundaryRefElement()
+				// should NOT be invoked inside the renewState() again
+                return false;
+            }
+
+            return true; // means the "shouldUseBottomEdgeOfLowerBoundaryRefElement" has NOT been changed here
+        }
+
+        return true; // nothing of the public state changed inside this function
+    }
+
+	function setUsedEdgeOfLowerBoundaryRefElement(shouldUseBottomEdgeOfLowerBoundaryRefElement, isForcedToRenew) {
 		var thisInstance = this,
 			elements = thisInstance.elements
 		;
@@ -910,7 +921,7 @@
 		}
 
 		// update public state directly here,
-		// to ensure renewHangingLowerBoundaryValue execute correctly
+		// to ensure _renewDerivedLowerBoundaryValue execute correctly
 		// but need more thinking
 		thisInstance.state.shouldUseBottomEdgeOfLowerBoundaryRefElement = !!shouldUseBottomEdgeOfLowerBoundaryRefElement;
 
@@ -918,17 +929,17 @@
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		renewHangingLowerBoundaryValue.call(this, isForcedToRenew);
+		_renewDerivedLowerBoundaryValue(this, isForcedToRenew);
 
 		return false;
 	}
 
-	function renewHangingLowerBoundaryValue(isForcedToRenew) {
-		var newState = _evaluateHangingBoundries(this);
+	function _renewDerivedLowerBoundaryValue(thisInstance, isForcedToRenew) {
+		var newState = _evaluateHangingBoundries(thisInstance);
 
 		if (isForcedToRenew) newState.isForcedToUpdate = true;
 
-		requestLayoutUpdate.call(this, newState);
+		requestLayoutUpdate.call(thisInstance, newState);
 	}
 
 	function _evaluateHangingBoundries(thisInstance) {
