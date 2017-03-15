@@ -9,7 +9,7 @@ const folderOfJsFiles = 'js';
 
 
 let shouldMinifyJsFiles = false;
-let shouldMinifyCssFiles = false;
+let shouldMinifyCssFiles = true;
 let shouldStripConsoleLoggingsFromJsFiles = true;
 let shouldGenerateMapFilesForJs = true;
 let shouldGenerateMapFilesForCss = true;
